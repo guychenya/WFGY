@@ -4,14 +4,22 @@
   "description": "TXT OS Web UI - AI Reasoning System",
   "main": "index.html",
   "scripts": {
-    "build": "echo 'Static site - no build needed'"
+    "build": "echo 'Static site - no build needed'",
+    "start": "echo 'Static HTML site'",
+    "test": "echo 'No tests needed for static site'"
   },
-  "keywords": ["ai", "reasoning", "ollama", "txt-os"],
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.0"
+  },
+  "keywords": ["ai", "reasoning", "ollama", "txt-os", "static-site"],
   "author": "PSBigBig",
   "license": "MIT",
   "homepage": "https://github.com/guychenya/WFGY",
   "repository": {
     "type": "git",
     "url": "https://github.com/guychenya/WFGY.git"
-  }
+  },
+  "devDependencies": {},
+  "dependencies": {}
 }

@@ -5,8 +5,7 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--no-optional"
-  PYTHON_VERSION = ""
-  DISABLE_PYTHON_INSTALL = "true"
+  BUILDPACK_URL = "https://github.com/heroku/heroku-buildpack-nodejs"
 
 [[redirects]]
   from = "/*"
