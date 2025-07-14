@@ -1,15 +1,15 @@
 [build]
   publish = "OS"
-  command = "echo 'Static site - no build needed'"
-  ignore = "/bin/false"
+  command = "echo 'Static site deployment - no build needed'"
+  
+[build.environment]
+  NODE_VERSION = "18"
+  DISABLE_PYTHON_INSTALLATION = "true"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[build.environment]
-  NODE_VERSION = "18"
 
 [[headers]]
   for = "/*"

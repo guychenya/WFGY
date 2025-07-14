@@ -1,0 +1,17 @@
+requirements.txt
+pyproject.toml
+setup.py
+environment.yml
+*.py
+wfgy_sdk/
+tests/
+examples/
+benchmarks/
+specs/
+I_am_not_lizardman/
+images/
+demo/
+*.pyc
+__pycache__/
+.git/
+.DS_Store
