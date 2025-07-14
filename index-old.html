@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TXT OS - AI Reasoning System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="./images/logo.png" type="image/png">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🏛️</div>
+                <h1>TXT OS</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <div class="status-indicators">
+                <div class="status-item">
+                    <span class="indicator" id="ollama-status"></span>
+                    <span>Ollama</span>
+                </div>
+                <div class="status-item">
+                    <span class="indicator" id="kb-status"></span>
+                    <span>Knowledge Boundary</span>
+                </div>
+                <div class="status-item">
+                    <span class="indicator" id="memory-status"></span>
+                    <span>Semantic Memory</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="panel-header">
+                    <h3>Semantic Tree Memory</h3>
+                    <button id="export-memory" class="btn-secondary">Export</button>
+                </div>
+                <div class="memory-tree" id="memory-tree">
+                    <div class="tree-node root">
+                        <span class="node-icon">🌲</span>
+                        <span class="node-text">Root Memory</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="center-panel">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="system-message">
+                            <div class="message-icon">🏛️</div>
+                            <div class="message-content">
+                                <strong>TXT OS initialized</strong><br>
+                                Type "hello world" to begin or "kbtest" to test knowledge boundaries
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <div class="input-wrapper">
+                            <input type="text" id="chat-input" placeholder="Enter your message..." autocomplete="off">
+                            <button id="send-btn" class="send-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M22 2L11 13"></path>
+                                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="input-controls">
+                            <button id="clear-chat" class="btn-secondary">Clear</button>
+                            <button id="kb-test" class="btn-secondary">KB Test</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="panel-header">
+                    <h3>System Metrics</h3>
+                </div>
+                <div class="metrics-container">
+                    <div class="metric-card">
+                        <div class="metric-label">Knowledge Boundary</div>
+                        <div class="metric-value" id="kb-metric">Safe</div>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="kb-fill"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Semantic Accuracy</div>
+                        <div class="metric-value" id="accuracy-metric">+22.4%</div>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="accuracy-fill" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Memory Depth</div>
+                        <div class="metric-value" id="memory-metric">0 nodes</div>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="memory-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-header">
+                    <h3>Ollama Settings</h3>
+                </div>
+                <div class="settings-container">
+                    <div class="setting-item">
+                        <label for="ollama-url">Ollama URL:</label>
+                        <input type="text" id="ollama-url" value="http://127.0.0.1:11435" class="setting-input">
+                    </div>
+                    <div class="setting-item">
+                        <label for="model-select">Model:</label>
+                        <select id="model-select" class="setting-select">
+                            <option value="llama2">llama2</option>
+                            <option value="mistral">mistral</option>
+                            <option value="codellama">codellama</option>
+                            <option value="neural-chat">neural-chat</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="temperature">Temperature:</label>
+                        <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.2" class="setting-slider">
+                        <span id="temp-value">0.2</span>
+                    </div>
+                    <button id="test-connection" class="btn-primary">Test Connection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

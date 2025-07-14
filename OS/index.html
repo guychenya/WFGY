@@ -3,127 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TXT OS - AI Reasoning System</title>
+    <title>TXT OS - Modern AI Reasoning System</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <header class="header">
             <div class="logo">
                 <div class="logo-icon">🏛️</div>
                 <h1>TXT OS</h1>
-                <span class="version">v1.0</span>
+                <span class="version">v2.0</span>
             </div>
-            <div class="status-indicators">
+            <div class="status-bar">
                 <div class="status-item">
-                    <span class="indicator" id="ollama-status"></span>
+                    <span class="status-dot" id="ollama-status"></span>
                     <span>Ollama</span>
                 </div>
                 <div class="status-item">
-                    <span class="indicator" id="kb-status"></span>
-                    <span>Knowledge Boundary</span>
+                    <span class="status-dot" id="memory-status"></span>
+                    <span>Memory</span>
                 </div>
-                <div class="status-item">
-                    <span class="indicator" id="memory-status"></span>
-                    <span>Semantic Memory</span>
-                </div>
+                <button class="settings-toggle" onclick="toggleSettings()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
             </div>
         </header>
 
-        <div class="main-content">
-            <div class="left-panel">
-                <div class="panel-header">
-                    <h3>Semantic Tree Memory</h3>
-                    <button id="export-memory" class="btn-secondary">Export</button>
-                </div>
-                <div class="memory-tree" id="memory-tree">
-                    <div class="tree-node root">
-                        <span class="node-icon">🌲</span>
-                        <span class="node-text">Root Memory</span>
-                    </div>
-                </div>
-            </div>
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <!-- Welcome Message -->
+                <div class="message assistant">
+                    <div class="message-avatar">🏛️</div>
+                    <div class="message-bubble">
+                        <div class="message-content">Welcome to TXT OS! I'm your AI reasoning system with semantic memory and knowledge boundary detection.
 
-            <div class="center-panel">
-                <div class="chat-container">
-                    <div class="chat-messages" id="chat-messages">
-                        <div class="system-message">
-                            <div class="message-icon">🏛️</div>
-                            <div class="message-content">
-                                <strong>TXT OS initialized</strong><br>
-                                Type "hello world" to begin or "kbtest" to test knowledge boundaries
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chat-input-container">
-                        <div class="input-wrapper">
-                            <input type="text" id="chat-input" placeholder="Enter your message..." autocomplete="off">
-                            <button id="send-btn" class="send-btn">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M22 2L11 13"></path>
-                                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+Try typing "hello world" to initialize the system, or ask me anything to begin our conversation.</div>
+                        <div class="message-actions">
+                            <button class="action-btn" onclick="copyText(this)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
+                                Copy
                             </button>
                         </div>
-                        <div class="input-controls">
-                            <button id="clear-chat" class="btn-secondary">Clear</button>
-                            <button id="kb-test" class="btn-secondary">KB Test</button>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="right-panel">
-                <div class="panel-header">
-                    <h3>System Metrics</h3>
+            <!-- Input Area -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        class="chat-input" 
+                        id="chat-input" 
+                        placeholder="Message TXT OS..."
+                        rows="1"
+                        onkeydown="handleKeyPress(event)"
+                        oninput="autoResize(this)"
+                    ></textarea>
+                    <button class="send-button" id="send-button" onclick="sendMessage()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M22 2L11 13"></path>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                        </svg>
+                    </button>
                 </div>
-                <div class="metrics-container">
-                    <div class="metric-card">
-                        <div class="metric-label">Knowledge Boundary</div>
-                        <div class="metric-value" id="kb-metric">Safe</div>
-                        <div class="metric-bar">
-                            <div class="metric-fill" id="kb-fill"></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Semantic Accuracy</div>
-                        <div class="metric-value" id="accuracy-metric">+22.4%</div>
-                        <div class="metric-bar">
-                            <div class="metric-fill" id="accuracy-fill" style="width: 75%"></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Memory Depth</div>
-                        <div class="metric-value" id="memory-metric">0 nodes</div>
-                        <div class="metric-bar">
-                            <div class="metric-fill" id="memory-fill"></div>
-                        </div>
-                    </div>
-                </div>
+            </div>
+        </div>
 
-                <div class="panel-header">
-                    <h3>Ollama Settings</h3>
-                </div>
-                <div class="settings-container">
+        <!-- Settings Sidebar -->
+        <div class="sidebar" id="settings-sidebar">
+            <div class="sidebar-header">
+                <h2>Settings</h2>
+                <button class="settings-toggle" onclick="toggleSettings()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 6L6 18"></path>
+                        <path d="M6 6L18 18"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <div class="settings-group">
+                    <h3>Ollama Configuration</h3>
                     <div class="setting-item">
-                        <label for="ollama-url">Ollama URL:</label>
-                        <input type="text" id="ollama-url" value="http://127.0.0.1:11435" class="setting-input">
+                        <label class="setting-label">Server URL</label>
+                        <input type="text" class="setting-input" id="ollama-url" value="http://127.0.0.1:11435">
                     </div>
                     <div class="setting-item">
-                        <label for="model-select">Model:</label>
-                        <select id="model-select" class="setting-select">
+                        <label class="setting-label">Model</label>
+                        <select class="setting-input" id="model-select">
                             <option value="llama2">llama2</option>
                             <option value="mistral">mistral</option>
                             <option value="codellama">codellama</option>
-                            <option value="neural-chat">neural-chat</option>
                         </select>
                     </div>
                     <div class="setting-item">
-                        <label for="temperature">Temperature:</label>
-                        <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.2" class="setting-slider">
-                        <span id="temp-value">0.2</span>
+                        <label class="setting-label">Temperature: <span id="temp-value">0.2</span></label>
+                        <input type="range" class="setting-input" id="temperature" min="0" max="1" step="0.1" value="0.2" oninput="updateTempValue(this.value)">
                     </div>
-                    <button id="test-connection" class="btn-primary">Test Connection</button>
+                    <div class="setting-item">
+                        <button class="action-btn" onclick="testConnection()" id="test-btn">Test Connection</button>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Memory & Performance</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">Memory Nodes: <span id="memory-count">0</span></label>
+                    </div>
+                    <div class="setting-item">
+                        <button class="action-btn" onclick="exportMemory()">Export Memory</button>
+                    </div>
+                    <div class="setting-item">
+                        <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+                    </div>
                 </div>
             </div>
         </div>
