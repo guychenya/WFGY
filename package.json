@@ -1,0 +1,17 @@
+{
+  "name": "txt-os-ui",
+  "version": "1.0.0",
+  "description": "TXT OS Web UI - AI Reasoning System",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Static site - no build needed'"
+  },
+  "keywords": ["ai", "reasoning", "ollama", "txt-os"],
+  "author": "PSBigBig",
+  "license": "MIT",
+  "homepage": "https://github.com/guychenya/WFGY",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guychenya/WFGY.git"
+  }
+}
