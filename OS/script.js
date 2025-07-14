@@ -1,7 +1,7 @@
 // Modern TXT OS - Ultra-fast AI Reasoning System
 class ModernTxtOS {
     constructor() {
-        this.ollamaUrl = 'http://127.0.0.1:11435';
+        this.ollamaUrl = 'http://127.0.0.1:11434';
         this.currentModel = 'llama2';
         this.temperature = 0.2;
         this.memoryTree = [];
