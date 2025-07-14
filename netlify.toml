@@ -1,16 +1,14 @@
 [build]
-  publish = "OS"
-  command = "npm run build"
-  
-[build.environment]
-  NODE_VERSION = "18"
-  NPM_FLAGS = "--no-optional"
-  BUILDPACK_URL = "https://github.com/heroku/heroku-buildpack-nodejs"
+  publish = "."
+  command = "echo 'Static site - no build needed'"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build.environment]
+  NODE_VERSION = "18"
 
 [[headers]]
   for = "/*"
@@ -18,4 +16,4 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:11435; img-src 'self' data:; connect-src 'self' http://127.0.0.1:11435 https://api.netlify.com;"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:11434; img-src 'self' data:; connect-src 'self' http://127.0.0.1:11434 https://api.netlify.com;"
