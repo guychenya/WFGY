@@ -148,10 +148,20 @@ class TxtOS {
     async sendToOllama(message) {
         const sendBtn = document.getElementById('send-btn');
         sendBtn.disabled = true;
+        sendBtn.classList.add('processing');
+        
+        // Show processing indicator
+        this.showProcessingIndicator();
+        
+        // Add typing indicator
+        const typingId = this.addTypingIndicator();
         
         try {
             const systemPrompt = this.buildSystemPrompt();
             const fullMessage = `${systemPrompt}\n\nUser: ${message}`;
+            
+            // Update processing status
+            this.updateProcessingStatus('Connecting to Ollama...');
             
             const response = await fetch(`${this.ollamaUrl}/api/generate`, {
                 method: 'POST',
@@ -164,7 +174,7 @@ class TxtOS {
                     options: {
                         temperature: this.temperature
                     },
-                    stream: false
+                    stream: true
                 })
             });
             
@@ -172,24 +182,64 @@ class TxtOS {
                 throw new Error('Request failed');
             }
             
-            const data = await response.json();
-            const reply = data.response;
+            // Remove typing indicator
+            this.removeTypingIndicator(typingId);
+            
+            // Update processing status
+            this.updateProcessingStatus('Generating response...');
+            
+            // Handle streaming response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+            
+            // Create message element for streaming
+            const messageId = this.addStreamingMessage('assistant');
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.response) {
+                                fullResponse += data.response;
+                                this.updateStreamingMessage(messageId, fullResponse);
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON lines
+                        }
+                    }
+                }
+            }
+            
+            // Update processing status
+            this.updateProcessingStatus('Analyzing response...');
             
             // Analyze response for knowledge boundary
-            const kbRisk = this.analyzeKnowledgeBoundary(reply);
+            const kbRisk = this.analyzeKnowledgeBoundary(fullResponse);
             this.updateKnowledgeBoundary(kbRisk);
             
             // Add to memory tree
-            this.addToMemoryTree(message, reply);
+            this.addToMemoryTree(message, fullResponse);
             
-            // Display response
-            this.addMessage('assistant', reply);
+            // Finalize streaming message
+            this.finalizeStreamingMessage(messageId);
             
         } catch (error) {
+            this.removeTypingIndicator(typingId);
             this.addSystemMessage('❌ Error communicating with Ollama: ' + error.message);
         }
         
+        this.hideProcessingIndicator();
         sendBtn.disabled = false;
+        sendBtn.classList.remove('processing');
     }
 
     buildSystemPrompt() {
@@ -363,6 +413,8 @@ Safety Mode: Active`;
     addMessage(type, content) {
         const messagesContainer = document.getElementById('chat-messages');
         const messageDiv = document.createElement('div');
+        const messageId = 'message-' + Date.now();
+        messageDiv.id = messageId;
         messageDiv.className = `message ${type}`;
         
         const iconMap = {
@@ -373,7 +425,22 @@ Safety Mode: Active`;
         
         messageDiv.innerHTML = `
             <div class="message-icon">${iconMap[type]}</div>
-            <div class="message-content">${content}</div>
+            <div class="message-content">
+                <div class="message-text">${content}</div>
+                <div class="message-actions">
+                    <button class="action-btn copy-btn" onclick="txtOS.copyMessage('${messageId}')" title="Copy message">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                    <button class="action-btn minimize-btn" onclick="txtOS.toggleMessage('${messageId}')" title="Minimize/Expand">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="18,15 12,9 6,15"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         `;
         
         messagesContainer.appendChild(messageDiv);
@@ -470,6 +537,198 @@ Safety Mode: Active`;
             document.getElementById('model-select').value = this.currentModel;
             document.getElementById('temperature').value = this.temperature;
             document.getElementById('temp-value').textContent = this.temperature;
+        }
+    }
+
+    // Loading indicator methods
+    showProcessingIndicator() {
+        const container = document.getElementById('chat-messages');
+        const indicator = document.createElement('div');
+        indicator.id = 'processing-indicator';
+        indicator.className = 'processing-indicator';
+        indicator.innerHTML = `
+            <div class="spinner"></div>
+            <span id="processing-text">Processing...</span>
+        `;
+        container.appendChild(indicator);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    updateProcessingStatus(text) {
+        const statusElement = document.getElementById('processing-text');
+        if (statusElement) {
+            statusElement.textContent = text;
+        }
+    }
+
+    hideProcessingIndicator() {
+        const indicator = document.getElementById('processing-indicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+
+    addTypingIndicator() {
+        const messagesContainer = document.getElementById('chat-messages');
+        const typingId = 'typing-' + Date.now();
+        const typingDiv = document.createElement('div');
+        typingDiv.id = typingId;
+        typingDiv.className = 'typing-indicator';
+        typingDiv.innerHTML = `
+            <div class="message-icon">🤖</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+            <span>TXT OS is thinking...</span>
+        `;
+        
+        messagesContainer.appendChild(typingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        return typingId;
+    }
+
+    removeTypingIndicator(typingId) {
+        const typingElement = document.getElementById(typingId);
+        if (typingElement) {
+            typingElement.remove();
+        }
+    }
+
+    addStreamingMessage(type) {
+        const messagesContainer = document.getElementById('chat-messages');
+        const messageId = 'streaming-' + Date.now();
+        const messageDiv = document.createElement('div');
+        messageDiv.id = messageId;
+        messageDiv.className = `message ${type} streaming`;
+        
+        const iconMap = {
+            'assistant': '🤖',
+            'user': '👤',
+            'system': '⚙️'
+        };
+        
+        messageDiv.innerHTML = `
+            <div class="message-icon">${iconMap[type]}</div>
+            <div class="message-content">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="message-text streaming-text"></div>
+                <div class="message-actions">
+                    <button class="action-btn copy-btn" onclick="txtOS.copyMessage('${messageId}')" title="Copy message">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                    <button class="action-btn minimize-btn" onclick="txtOS.toggleMessage('${messageId}')" title="Minimize/Expand">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="18,15 12,9 6,15"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        return messageId;
+    }
+
+    updateStreamingMessage(messageId, text) {
+        const messageElement = document.getElementById(messageId);
+        if (messageElement) {
+            const textElement = messageElement.querySelector('.streaming-text');
+            const progressBar = messageElement.querySelector('.progress-fill');
+            
+            if (textElement) {
+                textElement.textContent = text;
+            }
+            
+            // Simulate progress
+            if (progressBar) {
+                const progress = Math.min(95, text.length * 0.5);
+                progressBar.style.width = `${progress}%`;
+            }
+            
+            // Auto-scroll
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    finalizeStreamingMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (messageElement) {
+            const progressBar = messageElement.querySelector('.progress-bar');
+            const progressFill = messageElement.querySelector('.progress-fill');
+            
+            // Complete progress
+            if (progressFill) {
+                progressFill.style.width = '100%';
+            }
+            
+            // Remove progress bar after animation
+            setTimeout(() => {
+                if (progressBar) {
+                    progressBar.remove();
+                }
+                messageElement.classList.remove('streaming');
+            }, 500);
+        }
+        
+        this.messageCount++;
+    }
+
+    // Message interaction methods
+    copyMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (messageElement) {
+            const textElement = messageElement.querySelector('.message-text');
+            if (textElement) {
+                const text = textElement.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    // Show copy feedback
+                    const copyBtn = messageElement.querySelector('.copy-btn');
+                    const originalTitle = copyBtn.title;
+                    copyBtn.title = 'Copied!';
+                    copyBtn.style.color = '#10b981';
+                    
+                    setTimeout(() => {
+                        copyBtn.title = originalTitle;
+                        copyBtn.style.color = '';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+            }
+        }
+    }
+
+    toggleMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (messageElement) {
+            const textElement = messageElement.querySelector('.message-text');
+            const minimizeBtn = messageElement.querySelector('.minimize-btn');
+            const minimizeIcon = minimizeBtn.querySelector('svg polyline');
+            
+            if (textElement.style.display === 'none') {
+                // Expand
+                textElement.style.display = 'block';
+                minimizeIcon.setAttribute('points', '18,15 12,9 6,15');
+                minimizeBtn.title = 'Minimize';
+                messageElement.classList.remove('minimized');
+            } else {
+                // Minimize
+                textElement.style.display = 'none';
+                minimizeIcon.setAttribute('points', '6,9 12,15 18,9');
+                minimizeBtn.title = 'Expand';
+                messageElement.classList.add('minimized');
+            }
         }
     }
 }
