@@ -14,6 +14,8 @@ class ModernTxtOS {
         this.renderQueue = [];
         this.isRendering = false;
         
+        this.processRenderQueue = this.processRenderQueue.bind(this);
+        
         this.init();
     }
 
@@ -297,6 +299,27 @@ class ModernTxtOS {
         
         // Auto-scroll if user is at bottom
         this.smoothScrollToBottom();
+    }
+
+    processRenderQueue() {
+        if (this.isRendering || this.renderQueue.length === 0) {
+            return;
+        }
+        this.isRendering = true;
+        const batchSize = 5; // Process 5 messages at a time
+        const messagesToRender = this.renderQueue.splice(0, batchSize);
+
+        messagesToRender.forEach(messageId => {
+            const messageElement = document.getElementById(messageId);
+            if (messageElement) {
+                messageElement.classList.add('visible');
+            }
+        });
+
+        this.isRendering = false;
+        if (this.renderQueue.length > 0) {
+            requestAnimationFrame(() => this.processRenderQueue());
+        }
     }
 
     finalizeStreamingMessage(messageId) {
