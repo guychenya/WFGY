@@ -531,6 +531,11 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
         this.messageCount = 0;
     }
 
+    autoResize(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+    }
+
     exportMemory() {
         const data = {
             timestamp: new Date().toISOString(),
@@ -564,10 +569,7 @@ function handleKeyPress(event) {
     }
 }
 
-function autoResize(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
-}
+
 
 function updateTempValue(value) {
     document.getElementById('temp-value').textContent = value;
