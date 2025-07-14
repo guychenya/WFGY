@@ -1,7 +1,7 @@
 // TXT OS - JavaScript Implementation
 class TxtOS {
     constructor() {
-        this.ollamaUrl = 'http://localhost:11434';
+        this.ollamaUrl = 'http://127.0.0.1:11435';
         this.currentModel = 'llama2';
         this.temperature = 0.2;
         this.memoryTree = [];

@@ -20,7 +20,7 @@ A modern web interface for the TXT OS AI reasoning system with Ollama integratio
 2. **Open the UI**: Open `index.html` in your web browser
 
 3. **Configure Connection**: 
-   - Default Ollama URL: `http://localhost:11434`
+   - Default Ollama URL: `http://127.0.0.1:11435`
    - Select your preferred model
    - Adjust temperature (default: 0.2)
 
@@ -104,7 +104,7 @@ Modify `script.js` to add:
 ### Connection Issues
 - Ensure Ollama is running: `ollama serve`
 - Check firewall settings
-- Verify URL in settings (default: `http://localhost:11434`)
+- Verify URL in settings (default: `http://127.0.0.1:11435`)
 
 ### Performance
 - Reduce temperature for more consistent responses

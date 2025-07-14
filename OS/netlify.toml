@@ -16,4 +16,4 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:11434; img-src 'self' data:; connect-src 'self' http://localhost:11434 https://api.netlify.com;"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:11435; img-src 'self' data:; connect-src 'self' http://127.0.0.1:11435 https://api.netlify.com;"
