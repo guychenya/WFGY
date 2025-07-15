@@ -919,6 +919,25 @@ body {
     border-radius: 8px;
 }
 
+.manual-instructions.cors-setup {
+    background: #fff7ed;
+    border-color: #ea580c;
+}
+
+.manual-instructions.cors-setup h4 {
+    color: #ea580c;
+}
+
+.sub-steps {
+    margin-left: 20px;
+    margin-top: 8px;
+}
+
+.sub-steps code {
+    display: block;
+    margin: 4px 0;
+}
+
 .manual-instructions h4 {
     margin: 0 0 16px 0;
     font-size: 16px;

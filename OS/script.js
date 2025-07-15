@@ -101,31 +101,21 @@ class ModernTxtOS {
         }
         
         try {
-            // First, try to reach the server with CORS mode
+            // Check if we need to start Ollama with CORS
+            if (retryCount === 0) {
+                this.showConnectionStatus('info', 'Testing connection to Ollama server...');
+            }
+            
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            let response;
-            try {
-                response = await fetch(`${this.ollamaUrl}/api/tags`, {
-                    signal: controller.signal,
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-            } catch (corsError) {
-                // If CORS fails, try without CORS mode
-                clearTimeout(timeoutId);
-                const newTimeoutId = setTimeout(() => controller.abort(), 5000);
-                
-                response = await fetch(`${this.ollamaUrl}/api/tags`, {
-                    signal: controller.signal,
-                    mode: 'no-cors'
-                });
-                
-                clearTimeout(newTimeoutId);
-            }
+            const response = await fetch(`${this.ollamaUrl}/api/tags`, {
+                signal: controller.signal,
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
             
             clearTimeout(timeoutId);
             
@@ -197,6 +187,9 @@ class ModernTxtOS {
             // Show auto-start option if server is not running
             if (this.isOllamaNotRunning(error)) {
                 this.showAutoStartOption();
+            } else if (error.message.includes('CORS') || error.name === 'TypeError') {
+                // Likely CORS issue - show CORS setup instructions
+                this.showCORSSetupInstructions();
             }
         }
         
@@ -209,20 +202,26 @@ class ModernTxtOS {
     }
 
     diagnoseConnectionError(error) {
+        console.error('Connection error:', error); // Log for debugging
+        
         if (error.name === 'AbortError') {
             return 'Connection timeout - Ollama server may not be running. Try running `ollama serve` in terminal.';
+        }
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            return 'CORS error - Ollama server needs CORS configuration for web access.';
         }
         
         if (error.message.includes('CORS_OR_SERVER_DOWN')) {
             return 'Cannot reach Ollama server - Check if it\'s running on the correct port.';
         }
         
-        if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
-            return 'Network error - Ensure Ollama is installed and running locally.';
+        if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+            return 'Network/CORS error - Ollama server may need CORS configuration.';
         }
         
-        if (error.message.includes('CORS')) {
-            return 'CORS error - Server may need additional configuration for web access.';
+        if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+            return 'CORS error - Run Ollama with: OLLAMA_ORIGINS=* ollama serve';
         }
         
         if (error.message.includes('404')) {
@@ -378,6 +377,57 @@ class ModernTxtOS {
         const autoStartDiv = document.getElementById('auto-start-option');
         if (autoStartDiv) {
             autoStartDiv.replaceWith(instructionsDiv);
+        }
+    }
+
+    showCORSSetupInstructions() {
+        const instructionsDiv = document.createElement('div');
+        instructionsDiv.className = 'manual-instructions cors-setup';
+        instructionsDiv.innerHTML = `
+            <h4>🔒 CORS Setup Required</h4>
+            <p>Ollama server is running but needs CORS configuration for web access.</p>
+            <div class="instruction-steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <span class="step-text">Stop current Ollama server (Ctrl+C)</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <span class="step-text">Run with CORS enabled: <code>OLLAMA_ORIGINS=* ollama serve</code></span>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <span class="step-text">Or set environment variable permanently:</span>
+                    <div class="sub-steps">
+                        <code>export OLLAMA_ORIGINS=*</code><br>
+                        <code>ollama serve</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <span class="step-text">Try connecting again</span>
+                </div>
+            </div>
+            <div class="instruction-links">
+                <button class="action-btn primary" onclick="txtOS.testConnection()">
+                    Test Again
+                </button>
+                <button class="action-btn" onclick="txtOS.hideCORSInstructions()">
+                    Got it
+                </button>
+            </div>
+        `;
+        
+        const settingsGroup = document.querySelector('.settings-group');
+        if (settingsGroup) {
+            settingsGroup.appendChild(instructionsDiv);
+        }
+    }
+
+    hideCORSInstructions() {
+        const instructionsDiv = document.querySelector('.cors-setup');
+        if (instructionsDiv) {
+            instructionsDiv.remove();
         }
     }
 
