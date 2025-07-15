@@ -633,16 +633,16 @@ class ModernTxtOS {
         // Finalize message
         this.finalizeStreamingMessage(messageId);
         
+        // Update knowledge boundary based on response characteristics
+        const confidence = this.calculateConfidence(fullResponse, wordCount);
+        this.updateKnowledgeBoundary(confidence);
+        
         // Update memory
         this.addToMemory(message, fullResponse, confidence);
         this.updateMemoryCount();
         
         // Update dashboard metrics
         this.updateReasoningSpeed(responseTime);
-        
-        // Update knowledge boundary based on response characteristics
-        const confidence = this.calculateConfidence(fullResponse, wordCount);
-        this.updateKnowledgeBoundary(confidence);
         
         // Update dashboard if open
         if (this.isDashboardOpen) {
