@@ -25,6 +25,14 @@
                     <span class="status-dot" id="memory-status"></span>
                     <span>Memory</span>
                 </div>
+                <button class="dashboard-toggle" onclick="toggleDashboard()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
                 <button class="settings-toggle" onclick="toggleSettings()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -78,6 +86,96 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
             </div>
         </div>
 
+        <!-- Dashboard -->
+        <div class="dashboard" id="dashboard-panel">
+            <div class="dashboard-header">
+                <h2>WFGY Dashboard</h2>
+                <button class="dashboard-toggle" onclick="toggleDashboard()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 6L6 18"></path>
+                        <path d="M6 6L18 18"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="dashboard-content">
+                <!-- Semantic Tree Memory -->
+                <div class="dashboard-section">
+                    <h3>Semantic Tree Memory</h3>
+                    <div class="memory-tree" id="memory-tree">
+                        <div class="tree-node root">
+                            <div class="node-content">Root</div>
+                            <div class="node-children" id="tree-children"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Knowledge Boundary Detection -->
+                <div class="dashboard-section">
+                    <h3>Knowledge Boundary</h3>
+                    <div class="boundary-indicator">
+                        <div class="boundary-status" id="boundary-status">
+                            <span class="status-dot" id="boundary-dot"></span>
+                            <span id="boundary-text">Confident</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidence-fill" style="width: 85%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Temperature Gauge -->
+                <div class="dashboard-section">
+                    <h3>Temperature Control</h3>
+                    <div class="temperature-gauge">
+                        <div class="gauge-container">
+                            <div class="gauge-arc" id="temp-gauge-arc"></div>
+                            <div class="gauge-needle" id="temp-needle"></div>
+                            <div class="gauge-center">
+                                <span id="temp-display">0.2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Nodes -->
+                <div class="dashboard-section">
+                    <h3>Memory Nodes</h3>
+                    <div class="memory-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active Nodes</span>
+                            <span class="stat-value" id="active-nodes">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Memory</span>
+                            <span class="stat-value" id="total-memory">0KB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reasoning Speed -->
+                <div class="dashboard-section">
+                    <h3>Reasoning Speed</h3>
+                    <div class="speed-meter">
+                        <div class="speed-bar">
+                            <div class="speed-fill" id="speed-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="speed-stats">
+                            <span id="current-speed">0 ms</span>
+                            <span id="avg-speed">Avg: 0 ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Chart -->
+                <div class="dashboard-section">
+                    <h3>Performance</h3>
+                    <div class="performance-chart">
+                        <canvas id="performance-canvas" width="280" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Sidebar -->
         <div class="sidebar" id="settings-sidebar">
             <div class="sidebar-header">
@@ -123,6 +221,9 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
                     </div>
                     <div class="setting-item">
                         <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+                    </div>
+                    <div class="setting-item">
+                        <button class="action-btn" onclick="txtOS.resetConnectionPermission()">Reset Connection Permission</button>
                     </div>
                 </div>
             </div>

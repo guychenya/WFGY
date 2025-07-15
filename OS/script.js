@@ -14,6 +14,14 @@ class ModernTxtOS {
         this.renderQueue = [];
         this.isRendering = false;
         
+        // Dashboard data
+        this.isDashboardOpen = false;
+        this.performanceData = [];
+        this.responseTimings = [];
+        this.knowledgeBoundaryData = { confidence: 85, status: 'Confident' };
+        this.currentSpeed = 0;
+        this.averageSpeed = 0;
+        
         this.processRenderQueue = this.processRenderQueue.bind(this);
         
         this.init();
@@ -22,8 +30,9 @@ class ModernTxtOS {
     init() {
         this.loadSettings();
         this.setupEventListeners();
-        this.testConnection();
         this.initializePerformanceOptimizations();
+        this.initializeDashboard();
+        this.requestConnectionPermission();
     }
 
     setupEventListeners() {
@@ -45,6 +54,7 @@ class ModernTxtOS {
         document.getElementById('temperature').addEventListener('input', (e) => {
             this.temperature = parseFloat(e.target.value);
             this.saveSettings();
+            this.updateTemperatureGauge();
         });
     }
 
@@ -81,19 +91,43 @@ class ModernTxtOS {
         };
     }
 
-    async testConnection() {
+    async testConnection(retryCount = 0) {
         const statusElement = document.getElementById('ollama-status');
         const testBtn = document.getElementById('test-btn');
         
         if (testBtn) {
             testBtn.disabled = true;
-            testBtn.textContent = 'Testing...';
+            testBtn.textContent = retryCount > 0 ? `Retrying... (${retryCount}/3)` : 'Testing...';
         }
         
         try {
-            const response = await fetch(`${this.ollamaUrl}/api/tags`, {
-                signal: AbortSignal.timeout(5000)
-            });
+            // First, try to reach the server with CORS mode
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            let response;
+            try {
+                response = await fetch(`${this.ollamaUrl}/api/tags`, {
+                    signal: controller.signal,
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (corsError) {
+                // If CORS fails, try without CORS mode
+                clearTimeout(timeoutId);
+                const newTimeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                response = await fetch(`${this.ollamaUrl}/api/tags`, {
+                    signal: controller.signal,
+                    mode: 'no-cors'
+                });
+                
+                clearTimeout(newTimeoutId);
+            }
+            
+            clearTimeout(timeoutId);
             
             if (response.ok) {
                 const data = await response.json();
@@ -103,21 +137,67 @@ class ModernTxtOS {
                 // Update model list
                 const modelSelect = document.getElementById('model-select');
                 modelSelect.innerHTML = '';
-                data.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.name;
-                    option.textContent = model.name;
-                    modelSelect.appendChild(option);
-                });
+                
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.name;
+                        modelSelect.appendChild(option);
+                    });
+                    
+                    // Set current model if it exists in the list
+                    const currentModelExists = data.models.some(model => model.name === this.currentModel);
+                    if (currentModelExists) {
+                        modelSelect.value = this.currentModel;
+                    } else {
+                        this.currentModel = data.models[0].name;
+                        modelSelect.value = this.currentModel;
+                    }
+                } else {
+                    // Add default models if none found
+                    const defaultModels = ['llama2', 'mistral', 'codellama'];
+                    defaultModels.forEach(modelName => {
+                        const option = document.createElement('option');
+                        option.value = modelName;
+                        option.textContent = modelName;
+                        modelSelect.appendChild(option);
+                    });
+                }
                 
                 if (testBtn) testBtn.textContent = 'Connected';
+                this.showConnectionStatus('success', `Connected to Ollama server (${data.models?.length || 0} models available)`);
+                
+                // Update dashboard if open
+                if (this.isDashboardOpen) {
+                    this.updateDashboardMetrics();
+                }
+            } else if (response.status === 0) {
+                // This might be a CORS issue or server not running
+                throw new Error('CORS_OR_SERVER_DOWN');
             } else {
-                throw new Error('Connection failed');
+                throw new Error(`Server responded with status ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
             this.isConnected = false;
             statusElement.classList.remove('online');
+            
+            // Retry logic for transient errors
+            if (retryCount < 3 && (error.name === 'AbortError' || error.message.includes('CORS_OR_SERVER_DOWN'))) {
+                setTimeout(() => {
+                    this.testConnection(retryCount + 1);
+                }, 2000);
+                return;
+            }
+            
+            const errorMessage = this.diagnoseConnectionError(error);
             if (testBtn) testBtn.textContent = 'Failed';
+            this.showConnectionStatus('error', errorMessage);
+            
+            // Show auto-start option if server is not running
+            if (this.isOllamaNotRunning(error)) {
+                this.showAutoStartOption();
+            }
         }
         
         if (testBtn) {
@@ -126,6 +206,282 @@ class ModernTxtOS {
                 testBtn.textContent = 'Test Connection';
             }, 2000);
         }
+    }
+
+    diagnoseConnectionError(error) {
+        if (error.name === 'AbortError') {
+            return 'Connection timeout - Ollama server may not be running. Try running `ollama serve` in terminal.';
+        }
+        
+        if (error.message.includes('CORS_OR_SERVER_DOWN')) {
+            return 'Cannot reach Ollama server - Check if it\'s running on the correct port.';
+        }
+        
+        if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
+            return 'Network error - Ensure Ollama is installed and running locally.';
+        }
+        
+        if (error.message.includes('CORS')) {
+            return 'CORS error - Server may need additional configuration for web access.';
+        }
+        
+        if (error.message.includes('404')) {
+            return 'Ollama API not found - Check server URL and Ollama version compatibility.';
+        }
+        
+        if (error.message.includes('500')) {
+            return 'Ollama server error - Check server logs for detailed information.';
+        }
+        
+        if (error.message.includes('ECONNREFUSED')) {
+            return 'Connection refused - Ollama server is not running or port is blocked.';
+        }
+        
+        return error.message || 'Unknown connection error - Check console for details.';
+    }
+
+    isOllamaNotRunning(error) {
+        return error.name === 'AbortError' || 
+               error.message.includes('ECONNREFUSED') || 
+               error.message.includes('fetch') ||
+               error.message.includes('CORS_OR_SERVER_DOWN') ||
+               error.message.includes('NetworkError');
+    }
+
+    showConnectionStatus(type, message) {
+        // Create or update connection status display
+        let statusDisplay = document.getElementById('connection-status');
+        if (!statusDisplay) {
+            statusDisplay = document.createElement('div');
+            statusDisplay.id = 'connection-status';
+            statusDisplay.className = 'connection-status';
+            
+            const settingsGroup = document.querySelector('.settings-group');
+            if (settingsGroup) {
+                settingsGroup.appendChild(statusDisplay);
+            }
+        }
+        
+        statusDisplay.className = `connection-status ${type}`;
+        statusDisplay.innerHTML = `
+            <div class="status-icon">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}
+            </div>
+            <div class="status-message">${message}</div>
+        `;
+        
+        // Auto-hide success messages
+        if (type === 'success') {
+            setTimeout(() => {
+                statusDisplay.style.opacity = '0';
+                setTimeout(() => statusDisplay.remove(), 300);
+            }, 3000);
+        }
+    }
+
+    showAutoStartOption() {
+        let autoStartDiv = document.getElementById('auto-start-option');
+        if (!autoStartDiv) {
+            autoStartDiv = document.createElement('div');
+            autoStartDiv.id = 'auto-start-option';
+            autoStartDiv.className = 'auto-start-option';
+            
+            const settingsGroup = document.querySelector('.settings-group');
+            if (settingsGroup) {
+                settingsGroup.appendChild(autoStartDiv);
+            }
+        }
+        
+        autoStartDiv.innerHTML = `
+            <div class="auto-start-message">
+                <p>🚀 Ollama server appears to be offline</p>
+                <p>Would you like to try starting it automatically?</p>
+            </div>
+            <div class="auto-start-buttons">
+                <button class="action-btn primary" onclick="txtOS.startOllamaServer()">
+                    Start Ollama
+                </button>
+                <button class="action-btn secondary" onclick="txtOS.hideAutoStartOption()">
+                    Manual Setup
+                </button>
+            </div>
+        `;
+    }
+
+    hideAutoStartOption() {
+        const autoStartDiv = document.getElementById('auto-start-option');
+        if (autoStartDiv) {
+            autoStartDiv.remove();
+        }
+    }
+
+    async startOllamaServer() {
+        const startBtn = document.querySelector('#auto-start-option .primary');
+        if (startBtn) {
+            startBtn.disabled = true;
+            startBtn.textContent = 'Starting...';
+        }
+        
+        try {
+            // Check if we can use local commands (this will work in Electron or similar environments)
+            if (window.electronAPI) {
+                const result = await window.electronAPI.startOllama();
+                if (result.success) {
+                    this.showConnectionStatus('success', 'Ollama server started successfully');
+                    setTimeout(() => this.testConnection(), 2000);
+                } else {
+                    throw new Error(result.error);
+                }
+            } else {
+                // For web environments, show instructions
+                this.showManualStartInstructions();
+            }
+        } catch (error) {
+            this.showConnectionStatus('error', `Failed to start Ollama: ${error.message}`);
+        }
+        
+        if (startBtn) {
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start Ollama';
+        }
+    }
+
+    showManualStartInstructions() {
+        const instructionsDiv = document.createElement('div');
+        instructionsDiv.className = 'manual-instructions';
+        instructionsDiv.innerHTML = `
+            <h4>Manual Ollama Setup</h4>
+            <div class="instruction-steps">
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <span class="step-text">Open Terminal/Command Prompt</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <span class="step-text">Run: <code>ollama serve</code></span>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <span class="step-text">Keep terminal open and try connecting again</span>
+                </div>
+            </div>
+            <div class="instruction-links">
+                <a href="https://ollama.ai" target="_blank" class="link-btn">
+                    📥 Download Ollama
+                </a>
+                <button class="action-btn" onclick="txtOS.hideManualInstructions()">
+                    Got it
+                </button>
+            </div>
+        `;
+        
+        const autoStartDiv = document.getElementById('auto-start-option');
+        if (autoStartDiv) {
+            autoStartDiv.replaceWith(instructionsDiv);
+        }
+    }
+
+    hideManualInstructions() {
+        const instructionsDiv = document.querySelector('.manual-instructions');
+        if (instructionsDiv) {
+            instructionsDiv.remove();
+        }
+    }
+
+    requestConnectionPermission() {
+        // Check if user has already granted permission
+        const hasPermission = localStorage.getItem('ollama-connection-permission');
+        if (hasPermission === 'granted') {
+            this.testConnection();
+            return;
+        }
+
+        // Show permission request dialog
+        this.showPermissionDialog();
+    }
+
+    showPermissionDialog() {
+        const overlay = document.createElement('div');
+        overlay.className = 'permission-overlay';
+        
+        const dialog = document.createElement('div');
+        dialog.className = 'permission-request';
+        dialog.innerHTML = `
+            <div class="permission-content">
+                <h3>🔗 Connect to Ollama</h3>
+                <p>TXT OS would like to connect to your local Ollama server to provide AI responses.</p>
+                <p><strong>Local server:</strong> ${this.ollamaUrl}</p>
+                <div class="permission-buttons">
+                    <button class="approve" onclick="txtOS.approveConnection()">
+                        Allow Connection
+                    </button>
+                    <button class="deny" onclick="txtOS.denyConnection()">
+                        Manual Setup
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        document.body.appendChild(dialog);
+        
+        // Add click handler to overlay
+        overlay.addEventListener('click', () => {
+            this.denyConnection();
+        });
+    }
+
+    approveConnection() {
+        // Store permission
+        localStorage.setItem('ollama-connection-permission', 'granted');
+        
+        // Remove dialog
+        this.hidePermissionDialog();
+        
+        // Test connection
+        this.testConnection();
+    }
+
+    denyConnection() {
+        // Store denial
+        localStorage.setItem('ollama-connection-permission', 'denied');
+        
+        // Remove dialog
+        this.hidePermissionDialog();
+        
+        // Show connection status
+        this.showConnectionStatus('info', 'Connection permission denied. Use settings to connect manually.');
+    }
+
+    hidePermissionDialog() {
+        const overlay = document.querySelector('.permission-overlay');
+        const dialog = document.querySelector('.permission-request');
+        
+        if (overlay) overlay.remove();
+        if (dialog) dialog.remove();
+    }
+
+    resetConnectionPermission() {
+        // Remove stored permission
+        localStorage.removeItem('ollama-connection-permission');
+        
+        // Reset connection state
+        this.isConnected = false;
+        const statusElement = document.getElementById('ollama-status');
+        if (statusElement) {
+            statusElement.classList.remove('online');
+        }
+        
+        // Clear any existing status messages
+        const existingStatus = document.getElementById('connection-status');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+        
+        // Show permission dialog again
+        this.showPermissionDialog();
+        
+        this.showNotification('Connection permission reset', 'info');
     }
 
     async sendMessage() {
@@ -157,6 +513,7 @@ class ModernTxtOS {
     }
 
     async streamResponse(message, typingId) {
+        const startTime = Date.now();
         const systemPrompt = this.buildSystemPrompt();
         const fullMessage = `${systemPrompt}\n\nUser: ${message}`;
         
@@ -183,6 +540,7 @@ class ModernTxtOS {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = '';
+        let wordCount = 0;
         
         while (true) {
             const { done, value } = await reader.read();
@@ -197,6 +555,7 @@ class ModernTxtOS {
                         const data = JSON.parse(line);
                         if (data.response) {
                             fullResponse += data.response;
+                            wordCount += data.response.split(' ').length;
                             this.updateStreamingMessage(messageId, fullResponse);
                         }
                     } catch (e) {
@@ -206,12 +565,27 @@ class ModernTxtOS {
             }
         }
         
+        // Calculate response time
+        const responseTime = Date.now() - startTime;
+        
         // Finalize message
         this.finalizeStreamingMessage(messageId);
         
         // Update memory
         this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
+        
+        // Update dashboard metrics
+        this.updateReasoningSpeed(responseTime);
+        
+        // Update knowledge boundary based on response characteristics
+        const confidence = this.calculateConfidence(fullResponse, wordCount);
+        this.updateKnowledgeBoundary(confidence);
+        
+        // Update dashboard if open
+        if (this.isDashboardOpen) {
+            this.updateDashboardMetrics();
+        }
     }
 
     addMessage(type, content) {
@@ -577,12 +951,243 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
         URL.revokeObjectURL(url);
         this.showNotification('Memory exported!', 'success');
     }
+
+    // Dashboard functionality
+    initializeDashboard() {
+        this.updateTemperatureGauge();
+        this.updateMemoryStats();
+        this.initializePerformanceChart();
+        this.updateDashboardMetrics();
+    }
+
+    toggleDashboard() {
+        this.isDashboardOpen = !this.isDashboardOpen;
+        const dashboard = document.getElementById('dashboard-panel');
+        const chatContainer = document.querySelector('.chat-container');
+        
+        dashboard.classList.toggle('open', this.isDashboardOpen);
+        chatContainer.classList.toggle('dashboard-open', this.isDashboardOpen);
+        
+        if (this.isDashboardOpen) {
+            this.updateDashboardMetrics();
+        }
+    }
+
+    updateSemanticTree() {
+        const treeChildren = document.getElementById('tree-children');
+        if (!treeChildren) return;
+        
+        treeChildren.innerHTML = '';
+        
+        // Add recent memory nodes as tree branches
+        const recentNodes = this.memoryTree.slice(-5).reverse();
+        recentNodes.forEach((node, index) => {
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'tree-node';
+            nodeDiv.innerHTML = `
+                <div class="node-content ${index === 0 ? 'active' : ''}">
+                    ${node.input.substring(0, 30)}...
+                </div>
+            `;
+            treeChildren.appendChild(nodeDiv);
+        });
+    }
+
+    updateKnowledgeBoundary(confidence = null, status = null) {
+        if (confidence !== null) this.knowledgeBoundaryData.confidence = confidence;
+        if (status !== null) this.knowledgeBoundaryData.status = status;
+        
+        const boundaryDot = document.getElementById('boundary-dot');
+        const boundaryText = document.getElementById('boundary-text');
+        const confidenceFill = document.getElementById('confidence-fill');
+        
+        if (boundaryDot && boundaryText && confidenceFill) {
+            boundaryText.textContent = this.knowledgeBoundaryData.status;
+            confidenceFill.style.width = `${this.knowledgeBoundaryData.confidence}%`;
+            
+            // Update dot color based on confidence
+            boundaryDot.classList.remove('online');
+            if (this.knowledgeBoundaryData.confidence > 70) {
+                boundaryDot.classList.add('online');
+            }
+        }
+    }
+
+    updateTemperatureGauge() {
+        const tempDisplay = document.getElementById('temp-display');
+        const tempNeedle = document.getElementById('temp-needle');
+        
+        if (tempDisplay) {
+            tempDisplay.textContent = this.temperature.toFixed(1);
+        }
+        
+        if (tempNeedle) {
+            // Rotate needle based on temperature (0-1 range maps to -90deg to 90deg)
+            const rotation = (this.temperature * 180) - 90;
+            tempNeedle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+        }
+    }
+
+    updateMemoryStats() {
+        const activeNodes = document.getElementById('active-nodes');
+        const totalMemory = document.getElementById('total-memory');
+        
+        if (activeNodes) {
+            activeNodes.textContent = this.memoryTree.length;
+        }
+        
+        if (totalMemory) {
+            const memorySize = Math.round(JSON.stringify(this.memoryTree).length / 1024);
+            totalMemory.textContent = `${memorySize}KB`;
+        }
+    }
+
+    updateReasoningSpeed(responseTime) {
+        this.currentSpeed = responseTime;
+        this.responseTimings.push(responseTime);
+        
+        // Keep only last 10 timings
+        if (this.responseTimings.length > 10) {
+            this.responseTimings = this.responseTimings.slice(-10);
+        }
+        
+        this.averageSpeed = this.responseTimings.reduce((a, b) => a + b, 0) / this.responseTimings.length;
+        
+        const currentSpeedEl = document.getElementById('current-speed');
+        const avgSpeedEl = document.getElementById('avg-speed');
+        const speedFill = document.getElementById('speed-fill');
+        
+        if (currentSpeedEl) {
+            currentSpeedEl.textContent = `${Math.round(responseTime)} ms`;
+        }
+        
+        if (avgSpeedEl) {
+            avgSpeedEl.textContent = `Avg: ${Math.round(this.averageSpeed)} ms`;
+        }
+        
+        if (speedFill) {
+            // Map response time to percentage (faster = higher percentage)
+            const maxTime = 5000; // 5 seconds max
+            const percentage = Math.max(0, 100 - (responseTime / maxTime * 100));
+            speedFill.style.width = `${percentage}%`;
+        }
+    }
+
+    initializePerformanceChart() {
+        const canvas = document.getElementById('performance-canvas');
+        if (!canvas) return;
+        
+        this.chartCtx = canvas.getContext('2d');
+        this.drawPerformanceChart();
+    }
+
+    drawPerformanceChart() {
+        if (!this.chartCtx) return;
+        
+        const canvas = this.chartCtx.canvas;
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // Clear canvas
+        this.chartCtx.clearRect(0, 0, width, height);
+        
+        // Draw grid
+        this.chartCtx.strokeStyle = '#e2e8f0';
+        this.chartCtx.lineWidth = 1;
+        
+        for (let i = 0; i <= 4; i++) {
+            const y = (height / 4) * i;
+            this.chartCtx.beginPath();
+            this.chartCtx.moveTo(0, y);
+            this.chartCtx.lineTo(width, y);
+            this.chartCtx.stroke();
+        }
+        
+        // Draw performance line
+        if (this.performanceData.length > 1) {
+            this.chartCtx.strokeStyle = '#ff6b35';
+            this.chartCtx.lineWidth = 2;
+            this.chartCtx.beginPath();
+            
+            const pointWidth = width / Math.max(this.performanceData.length - 1, 1);
+            
+            this.performanceData.forEach((point, index) => {
+                const x = index * pointWidth;
+                const y = height - (point * height);
+                
+                if (index === 0) {
+                    this.chartCtx.moveTo(x, y);
+                } else {
+                    this.chartCtx.lineTo(x, y);
+                }
+            });
+            
+            this.chartCtx.stroke();
+        }
+    }
+
+    addPerformanceDataPoint(value) {
+        this.performanceData.push(Math.min(1, Math.max(0, value)));
+        
+        // Keep only last 20 points
+        if (this.performanceData.length > 20) {
+            this.performanceData = this.performanceData.slice(-20);
+        }
+        
+        this.drawPerformanceChart();
+    }
+
+    updateDashboardMetrics() {
+        this.updateSemanticTree();
+        this.updateKnowledgeBoundary();
+        this.updateTemperatureGauge();
+        this.updateMemoryStats();
+        
+        // Add a performance data point based on current metrics
+        const performanceScore = (this.knowledgeBoundaryData.confidence / 100) * 
+                               (this.memoryTree.length > 0 ? 0.8 : 0.3) * 
+                               (this.isConnected ? 1 : 0.1);
+        this.addPerformanceDataPoint(performanceScore);
+    }
+
+    calculateConfidence(response, wordCount) {
+        // Simple confidence calculation based on response characteristics
+        let confidence = 80; // Base confidence
+        
+        // Longer responses tend to be more confident
+        if (wordCount > 50) confidence += 10;
+        if (wordCount > 100) confidence += 5;
+        
+        // Check for uncertainty indicators
+        const uncertaintyWords = ['maybe', 'might', 'possibly', 'uncertain', 'not sure', 'i think'];
+        const uncertaintyCount = uncertaintyWords.reduce((count, word) => {
+            return count + (response.toLowerCase().split(word).length - 1);
+        }, 0);
+        
+        confidence -= uncertaintyCount * 10;
+        
+        // Check for confident indicators
+        const confidentWords = ['definitely', 'certainly', 'clearly', 'obviously', 'precisely'];
+        const confidentCount = confidentWords.reduce((count, word) => {
+            return count + (response.toLowerCase().split(word).length - 1);
+        }, 0);
+        
+        confidence += confidentCount * 5;
+        
+        return Math.min(100, Math.max(20, confidence));
+    }
 }
 
 // Global functions for HTML event handlers
 function toggleSettings() {
     const sidebar = document.getElementById('settings-sidebar');
     sidebar.classList.toggle('open');
+}
+
+function toggleDashboard() {
+    if (window.txtOS) {
+        window.txtOS.toggleDashboard();
+    }
 }
 
 function handleKeyPress(event) {
