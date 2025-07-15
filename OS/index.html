@@ -101,9 +101,24 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
                 <!-- Semantic Tree Memory -->
                 <div class="dashboard-section">
                     <h3>Semantic Tree Memory</h3>
+                    <div class="memory-tree-stats">
+                        <div class="tree-stats-item">
+                            <span>📊</span>
+                            <span id="tree-node-count">0 nodes</span>
+                        </div>
+                        <div class="tree-stats-item">
+                            <span>🔄</span>
+                            <span id="tree-depth">0 depth</span>
+                        </div>
+                        <button class="tree-clear-btn" onclick="txtOS.clearMemoryTree()">Clear</button>
+                    </div>
                     <div class="memory-tree" id="memory-tree">
-                        <div class="tree-node root">
-                            <div class="node-content">Root</div>
+                        <div class="tree-node root level-0">
+                            <div class="node-content" onclick="txtOS.selectTreeNode('root')">
+                                <div class="node-icon">🌳</div>
+                                <div class="node-text">Conversation Root</div>
+                                <div class="node-timestamp">Start</div>
+                            </div>
                             <div class="node-children" id="tree-children"></div>
                         </div>
                     </div>
@@ -226,6 +241,37 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
                         <button class="action-btn" onclick="txtOS.resetConnectionPermission()">Reset Connection Permission</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tree Output Modal -->
+    <div class="tree-output-modal" id="tree-output-modal">
+        <div class="tree-output-content">
+            <div class="tree-output-header">
+                <h3 class="tree-output-title" id="tree-output-title">Memory Node Details</h3>
+                <button class="tree-output-close" onclick="txtOS.closeTreeOutput()">×</button>
+            </div>
+            <div class="tree-output-meta" id="tree-output-meta">
+                <span>⏰ <span id="tree-output-time">--</span></span>
+                <span>📏 <span id="tree-output-length">-- chars</span></span>
+                <span>🎯 <span id="tree-output-confidence">--%</span></span>
+            </div>
+            <div class="tree-output-section">
+                <h4>💬 User Input</h4>
+                <div class="tree-output-text" id="tree-output-input">No input selected</div>
+            </div>
+            <div class="tree-output-section">
+                <h4>🤖 AI Response</h4>
+                <div class="tree-output-text" id="tree-output-response">No response selected</div>
+            </div>
+            <div class="tree-output-actions">
+                <button class="tree-action-btn secondary" onclick="txtOS.jumpToMessage()">
+                    📍 Jump to Message
+                </button>
+                <button class="tree-action-btn primary" onclick="txtOS.copyTreeOutput()">
+                    📋 Copy Text
+                </button>
             </div>
         </div>
     </div>

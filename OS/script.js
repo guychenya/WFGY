@@ -21,6 +21,8 @@ class ModernTxtOS {
         this.knowledgeBoundaryData = { confidence: 85, status: 'Confident' };
         this.currentSpeed = 0;
         this.averageSpeed = 0;
+        this.selectedTreeNode = null;
+        this.treeDepth = 0;
         
         this.processRenderQueue = this.processRenderQueue.bind(this);
         
@@ -632,7 +634,7 @@ class ModernTxtOS {
         this.finalizeStreamingMessage(messageId);
         
         // Update memory
-        this.addToMemory(message, fullResponse);
+        this.addToMemory(message, fullResponse, confidence);
         this.updateMemoryCount();
         
         // Update dashboard metrics
@@ -916,17 +918,27 @@ Temperature: ${this.temperature}
 Provide clear, helpful responses while maintaining semantic coherence.`;
     }
 
-    addToMemory(input, output) {
-        this.memoryTree.push({
-            id: Date.now(),
+    addToMemory(input, output, confidence = null) {
+        const nodeId = `node-${Date.now()}`;
+        const memoryNode = {
+            id: nodeId,
             input,
             output,
-            timestamp: new Date().toISOString()
-        });
+            timestamp: new Date().toISOString(),
+            confidence: confidence || this.knowledgeBoundaryData.confidence,
+            responseTime: this.currentSpeed,
+            level: Math.min(this.memoryTree.length, 3) // Max 3 levels deep
+        };
+        
+        this.memoryTree.push(memoryNode);
+        
+        // Update tree depth
+        this.treeDepth = Math.max(this.treeDepth, memoryNode.level + 1);
         
         // Keep memory manageable
         if (this.memoryTree.length > 100) {
             this.memoryTree = this.memoryTree.slice(-50);
+            this.treeDepth = Math.min(this.treeDepth, 3);
         }
     }
 
@@ -1035,22 +1047,63 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
 
     updateSemanticTree() {
         const treeChildren = document.getElementById('tree-children');
+        const treeNodeCount = document.getElementById('tree-node-count');
+        const treeDepthEl = document.getElementById('tree-depth');
+        
         if (!treeChildren) return;
         
         treeChildren.innerHTML = '';
         
+        // Update stats
+        if (treeNodeCount) {
+            treeNodeCount.textContent = `${this.memoryTree.length} nodes`;
+        }
+        if (treeDepthEl) {
+            treeDepthEl.textContent = `${this.treeDepth} depth`;
+        }
+        
         // Add recent memory nodes as tree branches
-        const recentNodes = this.memoryTree.slice(-5).reverse();
+        const recentNodes = this.memoryTree.slice(-10).reverse();
         recentNodes.forEach((node, index) => {
             const nodeDiv = document.createElement('div');
-            nodeDiv.className = 'tree-node';
+            nodeDiv.className = `tree-node level-${node.level}`;
+            nodeDiv.dataset.nodeId = node.id;
+            
+            // Format timestamp
+            const timeAgo = this.formatTimeAgo(node.timestamp);
+            
+            // Get confidence indicator
+            const confidenceIcon = this.getConfidenceIcon(node.confidence);
+            
+            // Truncate input for display
+            const displayText = node.input.length > 25 ? 
+                node.input.substring(0, 25) + '...' : 
+                node.input;
+            
             nodeDiv.innerHTML = `
-                <div class="node-content ${index === 0 ? 'active' : ''}">
-                    ${node.input.substring(0, 30)}...
+                <div class="node-content ${index === 0 ? 'active' : ''} ${this.selectedTreeNode === node.id ? 'selected' : ''}" 
+                     onclick="txtOS.selectTreeNode('${node.id}')">
+                    <div class="node-icon">${confidenceIcon}</div>
+                    <div class="node-text">${displayText}</div>
+                    <div class="node-timestamp">${timeAgo}</div>
                 </div>
             `;
+            
             treeChildren.appendChild(nodeDiv);
         });
+        
+        // If no nodes, show empty state
+        if (this.memoryTree.length === 0) {
+            treeChildren.innerHTML = `
+                <div class="tree-node level-1">
+                    <div class="node-content" style="opacity: 0.5; cursor: default;">
+                        <div class="node-icon">💭</div>
+                        <div class="node-text">No conversations yet</div>
+                        <div class="node-timestamp">--</div>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     updateKnowledgeBoundary(confidence = null, status = null) {
@@ -1235,6 +1288,162 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
         confidence += confidentCount * 5;
         
         return Math.min(100, Math.max(20, confidence));
+    }
+
+    // Helper functions for tree visualization
+    formatTimeAgo(timestamp) {
+        const now = new Date();
+        const time = new Date(timestamp);
+        const diffMs = now - time;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        
+        if (diffMins < 1) return 'now';
+        if (diffMins < 60) return `${diffMins}m`;
+        if (diffHours < 24) return `${diffHours}h`;
+        return time.toLocaleDateString();
+    }
+
+    getConfidenceIcon(confidence) {
+        if (confidence >= 90) return '🟢';
+        if (confidence >= 70) return '🟡';
+        if (confidence >= 50) return '🟠';
+        return '🔴';
+    }
+
+    // Tree interaction methods
+    selectTreeNode(nodeId) {
+        this.selectedTreeNode = nodeId;
+        
+        // Update visual selection
+        document.querySelectorAll('.node-content').forEach(node => {
+            node.classList.remove('selected');
+        });
+        
+        if (nodeId === 'root') {
+            this.showTreeOutput({
+                id: 'root',
+                input: 'Conversation started',
+                output: 'Welcome to TXT OS! This is the root of your conversation tree.',
+                timestamp: new Date().toISOString(),
+                confidence: 100
+            });
+            return;
+        }
+        
+        const memoryNode = this.memoryTree.find(node => node.id === nodeId);
+        if (memoryNode) {
+            const nodeElement = document.querySelector(`[data-node-id="${nodeId}"] .node-content`);
+            if (nodeElement) {
+                nodeElement.classList.add('selected');
+            }
+            
+            this.showTreeOutput(memoryNode);
+        }
+    }
+
+    showTreeOutput(node) {
+        const modal = document.getElementById('tree-output-modal');
+        const title = document.getElementById('tree-output-title');
+        const time = document.getElementById('tree-output-time');
+        const length = document.getElementById('tree-output-length');
+        const confidence = document.getElementById('tree-output-confidence');
+        const input = document.getElementById('tree-output-input');
+        const response = document.getElementById('tree-output-response');
+        
+        if (!modal) return;
+        
+        // Update modal content
+        title.textContent = node.id === 'root' ? 'Conversation Root' : 'Memory Node';
+        time.textContent = this.formatTimeAgo(node.timestamp);
+        length.textContent = `${(node.input.length + node.output.length)} chars`;
+        confidence.textContent = `${node.confidence}%`;
+        input.textContent = node.input;
+        response.textContent = node.output;
+        
+        // Store current node for actions
+        this.currentOutputNode = node;
+        
+        // Show modal
+        modal.classList.add('show');
+        
+        // Add escape key listener
+        document.addEventListener('keydown', this.handleModalEscape.bind(this));
+    }
+
+    closeTreeOutput() {
+        const modal = document.getElementById('tree-output-modal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+        
+        // Remove escape key listener
+        document.removeEventListener('keydown', this.handleModalEscape.bind(this));
+        
+        this.currentOutputNode = null;
+    }
+
+    handleModalEscape(event) {
+        if (event.key === 'Escape') {
+            this.closeTreeOutput();
+        }
+    }
+
+    jumpToMessage() {
+        if (!this.currentOutputNode) return;
+        
+        // Find the message in the chat
+        const messages = document.querySelectorAll('.message');
+        let targetMessage = null;
+        
+        messages.forEach(message => {
+            const content = message.querySelector('.message-content');
+            if (content && content.textContent.includes(this.currentOutputNode.input)) {
+                targetMessage = message;
+            }
+        });
+        
+        if (targetMessage) {
+            // Close modal first
+            this.closeTreeOutput();
+            
+            // Scroll to message
+            targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Highlight message temporarily
+            targetMessage.style.backgroundColor = 'rgba(255, 107, 53, 0.1)';
+            targetMessage.style.transform = 'scale(1.02)';
+            
+            setTimeout(() => {
+                targetMessage.style.backgroundColor = '';
+                targetMessage.style.transform = '';
+            }, 2000);
+        } else {
+            this.showNotification('Message not found in current chat', 'info');
+        }
+    }
+
+    copyTreeOutput() {
+        if (!this.currentOutputNode) return;
+        
+        const textToCopy = `Input: ${this.currentOutputNode.input}\n\nResponse: ${this.currentOutputNode.output}`;
+        
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            this.showNotification('Copied to clipboard!', 'success');
+        }).catch(() => {
+            this.showNotification('Failed to copy', 'error');
+        });
+    }
+
+    clearMemoryTree() {
+        if (confirm('Clear all memory tree data? This cannot be undone.')) {
+            this.memoryTree = [];
+            this.treeDepth = 0;
+            this.selectedTreeNode = null;
+            this.updateSemanticTree();
+            this.updateMemoryStats();
+            this.showNotification('Memory tree cleared', 'info');
+        }
     }
 }
 
