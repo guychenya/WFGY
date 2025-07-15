@@ -106,6 +106,8 @@ class ModernTxtOS {
                 this.showConnectionStatus('info', 'Testing connection to Ollama server...');
             }
             
+            console.log('Testing connection to:', this.ollamaUrl);
+            
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
@@ -119,8 +121,11 @@ class ModernTxtOS {
             
             clearTimeout(timeoutId);
             
+            console.log('Response status:', response.status, 'OK:', response.ok);
+            
             if (response.ok) {
                 const data = await response.json();
+                console.log('Connection successful, models:', data.models?.length || 0);
                 this.isConnected = true;
                 statusElement.classList.add('online');
                 
@@ -169,11 +174,13 @@ class ModernTxtOS {
                 throw new Error(`Server responded with status ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
+            console.log('Connection failed:', error.name, error.message);
             this.isConnected = false;
             statusElement.classList.remove('online');
             
             // Retry logic for transient errors
             if (retryCount < 3 && (error.name === 'AbortError' || error.message.includes('CORS_OR_SERVER_DOWN'))) {
+                console.log('Retrying connection...');
                 setTimeout(() => {
                     this.testConnection(retryCount + 1);
                 }, 2000);
@@ -183,6 +190,8 @@ class ModernTxtOS {
             const errorMessage = this.diagnoseConnectionError(error);
             if (testBtn) testBtn.textContent = 'Failed';
             this.showConnectionStatus('error', errorMessage);
+            
+            console.log('Is server not running?', this.isOllamaNotRunning(error));
             
             // Show auto-start option if server is not running
             if (this.isOllamaNotRunning(error)) {
@@ -240,11 +249,12 @@ class ModernTxtOS {
     }
 
     isOllamaNotRunning(error) {
+        // Only consider it "not running" if it's actually a connection issue
+        // Not CORS issues (which mean server IS running)
         return error.name === 'AbortError' || 
-               error.message.includes('ECONNREFUSED') || 
-               error.message.includes('fetch') ||
-               error.message.includes('CORS_OR_SERVER_DOWN') ||
-               error.message.includes('NetworkError');
+               error.message.includes('ECONNREFUSED') ||
+               (error.message.includes('fetch') && !error.message.includes('CORS')) ||
+               error.message.includes('CORS_OR_SERVER_DOWN');
     }
 
     showConnectionStatus(type, message) {
