@@ -23,6 +23,8 @@ class ModernTxtOS {
         this.averageSpeed = 0;
         this.selectedTreeNode = null;
         this.treeDepth = 0;
+        this.attachedFiles = [];
+        this.maxFileSize = 10 * 1024 * 1024; // 10MB limit
         
         this.processRenderQueue = this.processRenderQueue.bind(this);
         
@@ -550,18 +552,29 @@ class ModernTxtOS {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
         
-        if (!message) return;
+        if (!message && this.attachedFiles.length === 0) return;
         if (!this.isConnected) {
             this.showNotification('Please connect to Ollama first', 'error');
             return;
         }
 
-        // Clear input immediately for responsiveness
+        // Prepare message content
+        let messageContent = message;
+        const attachments = [...this.attachedFiles];
+        
+        // Add file information to message if files are attached
+        if (attachments.length > 0) {
+            const fileList = attachments.map(f => `📎 ${f.name} (${this.formatFileSize(f.size)})`).join('\n');
+            messageContent += `\n\n${fileList}`;
+        }
+
+        // Clear input and attachments immediately for responsiveness
         input.value = '';
         this.autoResize(input);
+        this.clearFileAttachments();
         
         // Add user message instantly
-        this.addMessage('user', message);
+        this.addMessage('user', messageContent);
         
         // Show typing indicator
         const typingId = this.showTypingIndicator();
@@ -1460,6 +1473,142 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
             this.updateMemoryStats();
             this.showNotification('Memory tree cleared', 'info');
         }
+    }
+
+    // File attachment functionality
+    triggerFileUpload() {
+        const fileInput = document.getElementById('file-input');
+        fileInput.click();
+    }
+
+    handleFileUpload(event) {
+        const files = Array.from(event.target.files);
+        
+        files.forEach(file => {
+            if (this.validateFile(file)) {
+                this.addFileAttachment(file);
+            }
+        });
+        
+        // Clear the input so the same file can be selected again
+        event.target.value = '';
+    }
+
+    validateFile(file) {
+        // Check file size
+        if (file.size > this.maxFileSize) {
+            this.showNotification(`File "${file.name}" is too large. Maximum size is 10MB.`, 'error');
+            return false;
+        }
+        
+        // Check if file already attached
+        if (this.attachedFiles.some(f => f.name === file.name && f.size === file.size)) {
+            this.showNotification(`File "${file.name}" is already attached.`, 'info');
+            return false;
+        }
+        
+        return true;
+    }
+
+    addFileAttachment(file) {
+        const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const fileData = {
+            id: fileId,
+            file: file,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            preview: null
+        };
+        
+        this.attachedFiles.push(fileData);
+        
+        // Generate preview for images
+        if (file.type.startsWith('image/')) {
+            this.generateImagePreview(fileData);
+        }
+        
+        this.renderFileAttachments();
+    }
+
+    generateImagePreview(fileData) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            fileData.preview = e.target.result;
+            this.renderFileAttachments();
+        };
+        reader.readAsDataURL(fileData.file);
+    }
+
+    renderFileAttachments() {
+        const container = document.getElementById('file-attachments');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        this.attachedFiles.forEach(fileData => {
+            const fileDiv = document.createElement('div');
+            fileDiv.className = `file-attachment ${this.getFileCategory(fileData.type)}`;
+            fileDiv.dataset.fileId = fileData.id;
+            
+            const fileIcon = this.getFileIcon(fileData.type);
+            const fileSize = this.formatFileSize(fileData.size);
+            
+            fileDiv.innerHTML = `
+                ${fileData.preview ? 
+                    `<img src="${fileData.preview}" alt="${fileData.name}" class="file-preview">` : 
+                    `<div class="file-icon">${fileIcon}</div>`
+                }
+                <div class="file-info">
+                    <div class="file-name">${fileData.name}</div>
+                    <div class="file-size">${fileSize}</div>
+                </div>
+                <button class="file-remove" onclick="txtOS.removeFileAttachment('${fileData.id}')" title="Remove file">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 6L6 18"></path>
+                        <path d="M6 6L18 18"></path>
+                    </svg>
+                </button>
+            `;
+            
+            container.appendChild(fileDiv);
+        });
+    }
+
+    getFileCategory(mimeType) {
+        if (mimeType.startsWith('image/')) return 'image';
+        if (mimeType.startsWith('video/')) return 'video';
+        if (mimeType.startsWith('audio/')) return 'audio';
+        return 'document';
+    }
+
+    getFileIcon(mimeType) {
+        if (mimeType.startsWith('image/')) return '🖼️';
+        if (mimeType.startsWith('video/')) return '🎥';
+        if (mimeType.startsWith('audio/')) return '🎵';
+        if (mimeType.includes('pdf')) return '📄';
+        if (mimeType.includes('text')) return '📝';
+        if (mimeType.includes('json')) return '📋';
+        if (mimeType.includes('word') || mimeType.includes('document')) return '📄';
+        return '📎';
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    removeFileAttachment(fileId) {
+        this.attachedFiles = this.attachedFiles.filter(f => f.id !== fileId);
+        this.renderFileAttachments();
+    }
+
+    clearFileAttachments() {
+        this.attachedFiles = [];
+        this.renderFileAttachments();
     }
 }
 
