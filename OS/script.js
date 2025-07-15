@@ -1001,15 +1001,23 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
     }
 
     autoResize(textarea) {
+        // Reset height to auto to get accurate scrollHeight
         textarea.style.height = 'auto';
-        const newHeight = Math.min(textarea.scrollHeight, 200);
+        
+        // Calculate the actual content height
+        const scrollHeight = textarea.scrollHeight;
+        const minHeight = 48; // Match min-height from CSS
+        const maxHeight = 200; // Match max-height from CSS
+        
+        // Set the new height
+        const newHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
         textarea.style.height = newHeight + 'px';
         
-        // Hide scrollbar if content fits, show if it doesn't
-        if (textarea.scrollHeight <= 200) {
-            textarea.style.overflowY = 'hidden';
-        } else {
+        // Only show scrollbar if content exceeds max height
+        if (scrollHeight > maxHeight) {
             textarea.style.overflowY = 'auto';
+        } else {
+            textarea.style.overflowY = 'hidden';
         }
     }
 
