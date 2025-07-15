@@ -1002,7 +1002,15 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
 
     autoResize(textarea) {
         textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        const newHeight = Math.min(textarea.scrollHeight, 200);
+        textarea.style.height = newHeight + 'px';
+        
+        // Hide scrollbar if content fits, show if it doesn't
+        if (textarea.scrollHeight <= 200) {
+            textarea.style.overflowY = 'hidden';
+        } else {
+            textarea.style.overflowY = 'auto';
+        }
     }
 
     exportMemory() {

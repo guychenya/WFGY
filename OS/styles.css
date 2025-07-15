@@ -276,6 +276,31 @@ body {
     min-height: 48px;
     max-height: 200px;
     font-family: inherit;
+    overflow-y: auto;
+}
+
+.chat-input::-webkit-scrollbar {
+    width: 4px;
+}
+
+.chat-input::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-input::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.chat-input:hover::-webkit-scrollbar-thumb {
+    opacity: 1;
+}
+
+.chat-input:focus::-webkit-scrollbar-thumb {
+    opacity: 1;
+    background: var(--primary-color);
 }
 
 .chat-input:focus {
