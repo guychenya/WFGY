@@ -278,9 +278,31 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
                 <button class="tree-action-btn secondary" onclick="txtOS.jumpToMessage()">
                     📍 Jump to Message
                 </button>
-                <button class="tree-action-btn primary" onclick="txtOS.copyTreeOutput()">
+                <button class="tree-action-btn secondary" onclick="txtOS.copyTreeOutput()">
                     📋 Copy Text
                 </button>
+                <div class="download-dropdown">
+                    <button class="tree-action-btn primary dropdown-toggle" onclick="txtOS.toggleDownloadDropdown()">
+                        💾 Download
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                    </button>
+                    <div class="dropdown-menu" id="download-dropdown">
+                        <button class="dropdown-item" onclick="txtOS.downloadNode('txt')">
+                            📄 Text (.txt)
+                        </button>
+                        <button class="dropdown-item" onclick="txtOS.downloadNode('json')">
+                            📋 JSON (.json)
+                        </button>
+                        <button class="dropdown-item" onclick="txtOS.downloadNode('md')">
+                            📝 Markdown (.md)
+                        </button>
+                        <button class="dropdown-item" onclick="txtOS.downloadAllNodes()">
+                            📦 All Nodes (.zip)
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
