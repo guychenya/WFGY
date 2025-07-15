@@ -2,12 +2,16 @@
 class ModernTxtOS {
     constructor() {
         this.ollamaUrl = 'http://127.0.0.1:11434';
-        this.currentModel = 'llama2';
+        this.currentModel = 'webllm';
         this.temperature = 0.2;
         this.memoryTree = [];
         this.isConnected = false;
         this.messageCount = 0;
         this.typingTimeouts = [];
+        
+        // WebLLM integration
+        this.webllmEngine = null;
+        this.isWebLLMReady = false;
         
         // Performance optimizations
         this.messagesCache = new Map();
@@ -22,6 +26,7 @@ class ModernTxtOS {
     init() {
         this.loadSettings();
         this.setupEventListeners();
+        this.initializeWebLLM();
         this.testConnection();
         this.initializePerformanceOptimizations();
     }
@@ -69,6 +74,33 @@ class ModernTxtOS {
         document.getElementById('chat-messages').addEventListener('scroll', this.throttledScroll);
     }
 
+    async initializeWebLLM() {
+        try {
+            // Initialize WebLLM engine
+            if (typeof webllm !== 'undefined') {
+                this.webllmEngine = new webllm.MLCEngine();
+                this.showNotification('Initializing WebLLM...', 'info');
+                
+                await this.webllmEngine.reload("Llama-3.2-1B-Instruct-q4f32_1-MLC", {
+                    temperature: this.temperature,
+                    top_p: 0.9,
+                });
+                
+                this.isWebLLMReady = true;
+                this.showNotification('WebLLM ready!', 'success');
+                
+                // Update status
+                const statusElement = document.getElementById('ollama-status');
+                if (statusElement && this.currentModel === 'webllm') {
+                    statusElement.classList.add('online');
+                }
+            }
+        } catch (error) {
+            this.showNotification('WebLLM initialization failed: ' + error.message, 'error');
+            console.error('WebLLM error:', error);
+        }
+    }
+
     throttle(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -89,35 +121,52 @@ class ModernTxtOS {
             testBtn.disabled = true;
             testBtn.textContent = 'Testing...';
         }
-        
-        try {
-            const response = await fetch(`${this.ollamaUrl}/api/tags`, {
-                signal: AbortSignal.timeout(5000)
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
+
+        // Check WebLLM first if selected
+        if (this.currentModel === 'webllm') {
+            if (this.isWebLLMReady) {
                 this.isConnected = true;
                 statusElement.classList.add('online');
-                
-                // Update model list
-                const modelSelect = document.getElementById('model-select');
-                modelSelect.innerHTML = '';
-                data.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.name;
-                    option.textContent = model.name;
-                    modelSelect.appendChild(option);
+                if (testBtn) testBtn.textContent = 'WebLLM Ready';
+            } else {
+                this.isConnected = false;
+                statusElement.classList.remove('online');
+                if (testBtn) testBtn.textContent = 'WebLLM Loading...';
+            }
+        } else {
+            // Test Ollama connection
+            try {
+                const response = await fetch(`${this.ollamaUrl}/api/tags`, {
+                    signal: AbortSignal.timeout(5000)
                 });
                 
-                if (testBtn) testBtn.textContent = 'Connected';
-            } else {
-                throw new Error('Connection failed');
+                if (response.ok) {
+                    const data = await response.json();
+                    this.isConnected = true;
+                    statusElement.classList.add('online');
+                    
+                    // Update model list for Ollama models only
+                    const modelSelect = document.getElementById('model-select');
+                    const webllmOption = modelSelect.querySelector('option[value="webllm"]');
+                    const existingOllamaOptions = modelSelect.querySelectorAll('option:not([value="webllm"])');
+                    existingOllamaOptions.forEach(option => option.remove());
+                    
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.name + ' (Ollama)';
+                        modelSelect.appendChild(option);
+                    });
+                    
+                    if (testBtn) testBtn.textContent = 'Ollama Connected';
+                } else {
+                    throw new Error('Connection failed');
+                }
+            } catch (error) {
+                this.isConnected = false;
+                statusElement.classList.remove('online');
+                if (testBtn) testBtn.textContent = 'Ollama Failed';
             }
-        } catch (error) {
-            this.isConnected = false;
-            statusElement.classList.remove('online');
-            if (testBtn) testBtn.textContent = 'Failed';
         }
         
         if (testBtn) {
@@ -157,50 +206,80 @@ class ModernTxtOS {
     }
 
     async streamResponse(message, typingId) {
-        const systemPrompt = this.buildSystemPrompt();
-        const fullMessage = `${systemPrompt}\n\nUser: ${message}`;
-        
-        const response = await fetch(`${this.ollamaUrl}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: this.currentModel,
-                prompt: fullMessage,
-                options: { temperature: this.temperature },
-                stream: true
-            })
-        });
-
-        if (!response.ok) throw new Error('Request failed');
-        
         // Remove typing indicator
         this.removeTypingIndicator(typingId);
         
         // Create streaming message
         const messageId = this.addStreamingMessage('assistant');
         
-        // Stream response
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
         let fullResponse = '';
         
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        if (this.currentModel === 'webllm' && this.isWebLLMReady) {
+            // Use WebLLM
+            try {
+                const systemPrompt = this.buildSystemPrompt();
+                const conversation = [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: message }
+                ];
+                
+                const asyncChunkGenerator = await this.webllmEngine.chat.completions.create({
+                    messages: conversation,
+                    temperature: this.temperature,
+                    stream: true,
+                });
+                
+                for await (const chunk of asyncChunkGenerator) {
+                    const delta = chunk.choices[0]?.delta;
+                    if (delta?.content) {
+                        fullResponse += delta.content;
+                        this.updateStreamingMessage(messageId, fullResponse);
+                    }
+                }
+            } catch (error) {
+                fullResponse = `Error with WebLLM: ${error.message}`;
+                this.updateStreamingMessage(messageId, fullResponse);
+            }
+        } else {
+            // Use Ollama
+            const systemPrompt = this.buildSystemPrompt();
+            const fullMessage = `${systemPrompt}\n\nUser: ${message}`;
             
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            const response = await fetch(`${this.ollamaUrl}/api/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: this.currentModel,
+                    prompt: fullMessage,
+                    options: { temperature: this.temperature },
+                    stream: true
+                })
+            });
+
+            if (!response.ok) throw new Error('Ollama request failed');
             
-            for (const line of lines) {
-                if (line.trim()) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.response) {
-                            fullResponse += data.response;
-                            this.updateStreamingMessage(messageId, fullResponse);
+            // Stream response from Ollama
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.response) {
+                                fullResponse += data.response;
+                                this.updateStreamingMessage(messageId, fullResponse);
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON
                         }
-                    } catch (e) {
-                        // Skip invalid JSON
                     }
                 }
             }
@@ -529,6 +608,9 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
             document.getElementById('model-select').value = this.currentModel;
             document.getElementById('temperature').value = this.temperature;
             document.getElementById('temp-value').textContent = this.temperature;
+        } else {
+            // Set default to WebLLM for new users
+            document.getElementById('model-select').value = 'webllm';
         }
     }
 

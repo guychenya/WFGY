@@ -6,6 +6,7 @@
     <title>TXT OS - Modern AI Reasoning System</title>
     <meta http-equiv="Content-Security-Policy" content="connect-src 'self' *;">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46/lib/index.js"></script>
 </head>
 <body>
     <div class="container">
@@ -99,9 +100,10 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
                     <div class="setting-item">
                         <label class="setting-label">Model</label>
                         <select class="setting-input" id="model-select">
-                            <option value="llama2">llama2</option>
-                            <option value="mistral">mistral</option>
-                            <option value="codellama">codellama</option>
+                            <option value="webllm">WebLLM (Built-in)</option>
+                            <option value="llama2">llama2 (Ollama)</option>
+                            <option value="mistral">mistral (Ollama)</option>
+                            <option value="codellama">codellama (Ollama)</option>
                         </select>
                     </div>
                     <div class="setting-item">
