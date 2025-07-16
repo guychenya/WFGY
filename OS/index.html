@@ -88,6 +88,14 @@
                     <span class="status-dot" id="memory-status"></span>
                     <span>Memory</span>
                 </div>
+                <button class="dashboard-toggle" onclick="toggleDashboard()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
                 <button class="settings-toggle" onclick="toggleSettings()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -151,29 +159,27 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 </div>
             </div>
 
-            <!-- Input Area - TEXT ONLY -->
+            <!-- Input Area - WITH INLINE BUTTON -->
             <div class="input-section">
-                <textarea 
-                    class="chat-input" 
-                    id="chat-input" 
-                    placeholder="Message TXT OS..."
-                    rows="1"
-                    onkeydown="handleKeyPress(event)"
-                    oninput="autoResize(this)"
-                    ondrop="handleDrop(event)"
-                    ondragover="handleDragOver(event)"
-                ></textarea>
+                <div class="input-wrapper">
+                    <textarea 
+                        class="chat-input" 
+                        id="chat-input" 
+                        placeholder="Message TXT OS..."
+                        rows="1"
+                        onkeydown="handleKeyPress(event)"
+                        oninput="autoResize(this)"
+                        ondrop="handleDrop(event)"
+                        ondragover="handleDragOver(event)"
+                    ></textarea>
+                </div>
+                <button class="send-button" id="send-button" onclick="sendMessage()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13"></path>
+                        <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                    </svg>
+                </button>
             </div>
-        </div>
-
-        <!-- Send Button - COMPLETELY OUTSIDE CHAT CONTAINER -->
-        <div class="floating-button-container">
-            <button class="send-button" id="send-button" onclick="sendMessage()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 2L11 13"></path>
-                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-                </svg>
-            </button>
         </div>
 
         <!-- Settings Sidebar -->
@@ -242,6 +248,9 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                     <div class="setting-item">
                         <button class="action-btn" onclick="testConnection()" id="test-btn">Test Connection</button>
                     </div>
+                    <div class="setting-item">
+                        <button class="action-btn" onclick="testGroqConnection()" id="test-groq-btn">Test Groq Connection</button>
+                    </div>
                 </div>
 
                 <div class="settings-group">
@@ -254,6 +263,58 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                     </div>
                     <div class="setting-item">
                         <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Sidebar -->
+        <div class="sidebar" id="dashboard-sidebar">
+            <div class="sidebar-header">
+                <h2>Dashboard</h2>
+                <button class="settings-toggle" onclick="toggleDashboard()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 6L6 18"></path>
+                        <path d="M6 6L18 18"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <div class="settings-group">
+                    <h3>System Status</h3>
+                    <div class="dashboard-widget">
+                        <div class="widget-header">
+                            <h4>AI Service</h4>
+                            <span class="widget-status" id="service-status">●</span>
+                        </div>
+                        <div class="widget-content">
+                            <p>Current: <span id="current-service">Ollama</span></p>
+                            <p>Model: <span id="current-model">llama2</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Performance</h3>
+                    <div class="dashboard-widget">
+                        <div class="widget-header">
+                            <h4>Memory</h4>
+                        </div>
+                        <div class="widget-content">
+                            <p>Nodes: <span id="memory-nodes">0</span></p>
+                            <p>Messages: <span id="message-count">0</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Quick Actions</h3>
+                    <div class="dashboard-widget">
+                        <div class="widget-content">
+                            <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+                            <button class="action-btn" onclick="exportMemory()">Export Memory</button>
+                            <button class="action-btn" onclick="newChat()">New Chat</button>
+                        </div>
                     </div>
                 </div>
             </div>

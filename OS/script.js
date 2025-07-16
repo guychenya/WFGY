@@ -1584,3 +1584,102 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 });
+
+// Dashboard functionality
+function toggleDashboard() {
+    const dashboard = document.getElementById('dashboard-sidebar');
+    const settings = document.getElementById('settings-sidebar');
+    
+    // Close settings if open
+    if (settings.classList.contains('open')) {
+        settings.classList.remove('open');
+    }
+    
+    // Toggle dashboard
+    dashboard.classList.toggle('open');
+    
+    // Update dashboard data
+    updateDashboardData();
+}
+
+function updateDashboardData() {
+    const serviceStatus = document.getElementById('service-status');
+    const currentService = document.getElementById('current-service');
+    const currentModel = document.getElementById('current-model');
+    const memoryNodes = document.getElementById('memory-nodes');
+    const messageCount = document.getElementById('message-count');
+    
+    // Update service status
+    if (txtOS.isConnected) {
+        serviceStatus.classList.add('online');
+        serviceStatus.textContent = '●';
+    } else {
+        serviceStatus.classList.remove('online');
+        serviceStatus.textContent = '●';
+    }
+    
+    // Update current service and model
+    currentService.textContent = txtOS.currentService === 'groq' ? 'Groq' : 'Ollama';
+    currentModel.textContent = txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel;
+    
+    // Update memory and message counts
+    memoryNodes.textContent = txtOS.memoryTree.length;
+    messageCount.textContent = txtOS.messageCount;
+}
+
+// Groq connection test
+async function testGroqConnection() {
+    const testBtn = document.getElementById('test-groq-btn');
+    const serviceStatus = document.getElementById('service-status');
+    
+    if (!txtOS.groqApiKey) {
+        txtOS.showNotification('Please enter your Groq API key first', 'error');
+        return;
+    }
+    
+    testBtn.disabled = true;
+    testBtn.textContent = 'Testing...';
+    
+    try {
+        const success = await txtOS.testGroqConnection();
+        
+        if (success) {
+            testBtn.textContent = 'Connected';
+            testBtn.style.background = '#10b981';
+            testBtn.style.color = 'white';
+            
+            // Update service status indicator
+            if (serviceStatus) {
+                serviceStatus.classList.add('online');
+            }
+            
+            // Update main status dot
+            const ollamaStatus = document.getElementById('ollama-status');
+            if (ollamaStatus) {
+                ollamaStatus.classList.add('online');
+            }
+            
+            txtOS.showNotification('Groq connection successful!', 'success');
+        } else {
+            testBtn.textContent = 'Failed';
+            testBtn.style.background = '#ef4444';
+            testBtn.style.color = 'white';
+            
+            txtOS.showNotification('Groq connection failed. Check your API key.', 'error');
+        }
+    } catch (error) {
+        testBtn.textContent = 'Failed';
+        testBtn.style.background = '#ef4444';
+        testBtn.style.color = 'white';
+        
+        txtOS.showNotification('Groq connection error: ' + error.message, 'error');
+    }
+    
+    // Reset button after 3 seconds
+    setTimeout(() => {
+        testBtn.disabled = false;
+        testBtn.textContent = 'Test Groq Connection';
+        testBtn.style.background = '';
+        testBtn.style.color = '';
+    }, 3000);
+}
