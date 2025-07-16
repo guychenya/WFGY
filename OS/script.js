@@ -1683,3 +1683,125 @@ async function testGroqConnection() {
         testBtn.style.color = '';
     }, 3000);
 }
+
+// File upload functionality
+let attachedFiles = [];
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.querySelector('.input-container').classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only remove if leaving the container entirely
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+        document.querySelector('.input-container').classList.remove('drag-over');
+    }
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    document.querySelector('.input-container').classList.remove('drag-over');
+    
+    const files = Array.from(e.dataTransfer.files);
+    const allowedTypes = ['.txt', '.json', '.md', '.html', '.js', '.css', '.py', '.java', '.cpp', '.c', '.xml', '.yaml', '.yml', '.sql', '.sh', '.bat', '.csv', '.log'];
+    
+    files.forEach(file => {
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        if (allowedTypes.includes(fileExt)) {
+            attachFile(file);
+        } else {
+            txtOS.showNotification(`File type ${fileExt} not supported`, 'error');
+        }
+    });
+}
+
+function attachFile(file) {
+    const fileData = {
+        id: Date.now() + Math.random(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file: file
+    };
+    
+    attachedFiles.push(fileData);
+    displayAttachedFiles();
+    
+    // Read file content for text files
+    if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            fileData.content = e.target.result;
+        };
+        reader.readAsText(file);
+    }
+}
+
+function displayAttachedFiles() {
+    const container = document.getElementById('attached-files');
+    
+    if (attachedFiles.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = attachedFiles.map(file => `
+        <div class="file-card">
+            <span class="file-name">${file.name}</span>
+            <button class="remove-file" onclick="removeFile('${file.id}')" title="Remove file">×</button>
+        </div>
+    `).join('');
+}
+
+function removeFile(fileId) {
+    attachedFiles = attachedFiles.filter(file => file.id != fileId);
+    displayAttachedFiles();
+}
+
+function elaborateWithAI() {
+    txtOS.showNotification('Elaborate with AI feature coming soon!', 'info');
+}
+
+// Enhanced sendMessage to include file attachments
+const originalSendMessage = window.sendMessage;
+window.sendMessage = function() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (!message && attachedFiles.length === 0) return;
+    
+    let fullMessage = message;
+    
+    // Add file contents to message
+    if (attachedFiles.length > 0) {
+        fullMessage += '\n\n📎 Attached Files:\n';
+        attachedFiles.forEach(file => {
+            fullMessage += `\n**${file.name}**\n`;
+            if (file.content) {
+                fullMessage += `\`\`\`\n${file.content}\n\`\`\`\n`;
+            } else {
+                fullMessage += `[File: ${file.name} - ${(file.size / 1024).toFixed(1)}KB]\n`;
+            }
+        });
+    }
+    
+    // Clear attachments
+    attachedFiles = [];
+    displayAttachedFiles();
+    
+    // Call original sendMessage with enhanced message
+    input.value = fullMessage;
+    originalSendMessage();
+    input.value = message; // Restore original message for display
+}

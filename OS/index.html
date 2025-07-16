@@ -159,26 +159,31 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 </div>
             </div>
 
-            <!-- Input Area - WITH INLINE BUTTON -->
+            <!-- Attached Files Display -->
+            <div class="attached-files" id="attached-files"></div>
+
+            <!-- Input Area - WITH CENTERED BUTTON -->
             <div class="input-section">
-                <div class="input-wrapper">
+                <div class="input-container">
                     <textarea 
                         class="chat-input" 
                         id="chat-input" 
-                        placeholder="Message TXT OS..."
+                        placeholder="Message TXT OS... (📎 Drop files here)"
                         rows="1"
                         onkeydown="handleKeyPress(event)"
                         oninput="autoResize(this)"
                         ondrop="handleDrop(event)"
                         ondragover="handleDragOver(event)"
+                        ondragenter="handleDragEnter(event)"
+                        ondragleave="handleDragLeave(event)"
                     ></textarea>
+                    <button class="send-button" id="send-button" onclick="sendMessage()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13"></path>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                        </svg>
+                    </button>
                 </div>
-                <button class="send-button" id="send-button" onclick="sendMessage()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 2L11 13"></path>
-                        <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-                    </svg>
-                </button>
             </div>
         </div>
 
@@ -280,42 +285,161 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 </button>
             </div>
             <div class="sidebar-content">
-                <div class="settings-group">
-                    <h3>System Status</h3>
-                    <div class="dashboard-widget">
-                        <div class="widget-header">
-                            <h4>AI Service</h4>
-                            <span class="widget-status" id="service-status">●</span>
+                <!-- Knowledge Boundary Detection -->
+                <div class="visual-widget">
+                    <div class="widget-header">
+                        <div class="widget-icon">🎯</div>
+                        <div class="widget-title">
+                            <h4>Knowledge Boundary Detection</h4>
+                            <p>High accuracy, low false positives/negatives.</p>
                         </div>
-                        <div class="widget-content">
-                            <p>Current: <span id="current-service">Ollama</span></p>
-                            <p>Model: <span id="current-model">llama2</span></p>
+                    </div>
+                    <div class="widget-visual">
+                        <div class="boundary-radar">
+                            <div class="radar-ring outer"></div>
+                            <div class="radar-ring middle"></div>
+                            <div class="radar-ring inner"></div>
+                            <div class="radar-center">
+                                <div class="radar-dot red"></div>
+                                <div class="radar-dot yellow"></div>
+                                <div class="radar-dot green"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="settings-group">
-                    <h3>Performance</h3>
-                    <div class="dashboard-widget">
-                        <div class="widget-header">
-                            <h4>Memory</h4>
+                <!-- Temperature -->
+                <div class="visual-widget">
+                    <div class="widget-header">
+                        <div class="widget-icon">🌡️</div>
+                        <div class="widget-title">
+                            <h4>Temperature</h4>
+                            <p><span id="temp-display">0.4</span> (to optimize processing speed).</p>
                         </div>
-                        <div class="widget-content">
-                            <p>Nodes: <span id="memory-nodes">0</span></p>
-                            <p>Messages: <span id="message-count">0</span></p>
+                    </div>
+                    <div class="widget-visual">
+                        <div class="temperature-gauge">
+                            <div class="gauge-arc"></div>
+                            <div class="gauge-needle"></div>
+                            <div class="gauge-center">
+                                <div class="gauge-value">0.4</div>
+                                <div class="gauge-label">Optimized Speed</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="settings-group">
-                    <h3>Quick Actions</h3>
-                    <div class="dashboard-widget">
-                        <div class="widget-content">
-                            <button class="action-btn" onclick="clearChat()">Clear Chat</button>
-                            <button class="action-btn" onclick="exportMemory()">Export Memory</button>
-                            <button class="action-btn" onclick="newChat()">New Chat</button>
+                <!-- Logical Coherence -->
+                <div class="visual-widget">
+                    <div class="widget-header">
+                        <div class="widget-icon">✅</div>
+                        <div class="widget-title">
+                            <h4>Logical Coherence</h4>
+                            <p>Consistent reasoning across all memory nodes.</p>
                         </div>
                     </div>
+                    <div class="widget-visual">
+                        <div class="coherence-chain">
+                            <div class="chain-node active"></div>
+                            <div class="chain-connector"></div>
+                            <div class="chain-node active"></div>
+                            <div class="chain-connector"></div>
+                            <div class="chain-node active"></div>
+                            <div class="chain-connector"></div>
+                            <div class="chain-node active"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Networking -->
+                <div class="visual-widget">
+                    <div class="widget-header">
+                        <div class="widget-icon">🔗</div>
+                        <div class="widget-title">
+                            <h4>Networking</h4>
+                            <p>Reliable network connection for data transfer.</p>
+                        </div>
+                    </div>
+                    <div class="widget-visual">
+                        <div class="network-diagram">
+                            <div class="network-center"></div>
+                            <div class="network-node" style="--angle: 0deg;"></div>
+                            <div class="network-node" style="--angle: 51.4deg;"></div>
+                            <div class="network-node" style="--angle: 102.8deg;"></div>
+                            <div class="network-node" style="--angle: 154.2deg;"></div>
+                            <div class="network-node" style="--angle: 205.6deg;"></div>
+                            <div class="network-node" style="--angle: 257deg;"></div>
+                            <div class="network-node" style="--angle: 308.4deg;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Semantic Tree Memory -->
+                <div class="visual-widget">
+                    <div class="widget-header">
+                        <div class="widget-icon">🌳</div>
+                        <div class="widget-title">
+                            <h4>Semantic Tree Memory</h4>
+                            <p><span id="memory-nodes-count">4</span> nodes, each with capacity of 10GB.</p>
+                        </div>
+                    </div>
+                    <div class="widget-visual">
+                        <div class="tree-memory">
+                            <div class="tree-center">Tree</div>
+                            <div class="tree-branch top-left"></div>
+                            <div class="tree-branch top-right"></div>
+                            <div class="tree-branch bottom-left"></div>
+                            <div class="tree-branch bottom-right"></div>
+                            <div class="tree-node tl">10GB</div>
+                            <div class="tree-node tr">10GB</div>
+                            <div class="tree-node bl">10GB</div>
+                            <div class="tree-node br">10GB</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div class="visual-widget">
+                    <div class="widget-header">
+                        <div class="widget-icon">🔒</div>
+                        <div class="widget-title">
+                            <h4>Security</h4>
+                            <p>High-level security measures to protect user data.</p>
+                        </div>
+                    </div>
+                    <div class="widget-visual">
+                        <div class="security-lock">
+                            <div class="lock-body"></div>
+                            <div class="lock-shackle"></div>
+                            <div class="lock-key">🔑</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Handling -->
+                <div class="visual-widget">
+                    <div class="widget-header">
+                        <div class="widget-icon">🛡️</div>
+                        <div class="widget-title">
+                            <h4>Error Handling</h4>
+                            <p>Robust error handling mechanism.</p>
+                        </div>
+                    </div>
+                    <div class="widget-visual">
+                        <div class="error-shield">
+                            <div class="shield-body"></div>
+                            <div class="shield-check">✓</div>
+                            <div class="error-dot" style="--x: 20px; --y: 30px;"></div>
+                            <div class="error-dot" style="--x: 180px; --y: 50px;"></div>
+                            <div class="error-dot" style="--x: 40px; --y: 120px;"></div>
+                            <div class="error-dot" style="--x: 160px; --y: 140px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="elaborate-button">
+                    <button onclick="elaborateWithAI()">Elaborate with AI</button>
                 </div>
             </div>
         </div>
