@@ -767,6 +767,9 @@ body {
 
 .dashboard-content {
     padding: 16px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
 }
 
 .dashboard-section {
@@ -775,6 +778,23 @@ body {
     background: var(--secondary-color);
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.dashboard-section * {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.dashboard-section table,
+.dashboard-section pre,
+.dashboard-section code {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
 }
 
 .dashboard-section h3 {
@@ -1113,12 +1133,19 @@ body {
 /* Performance Chart */
 .performance-chart {
     padding: 8px 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 #performance-canvas {
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background: var(--background);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Settings and Dashboard toggles */

@@ -2,12 +2,25 @@
 class ModernTxtOS {
     constructor() {
         this.ollamaUrl = 'http://127.0.0.1:11434';
+        this.groqApiKey = '';
+        this.currentService = 'ollama'; // 'ollama' or 'groq'
         this.currentModel = 'llama2';
+        this.groqModel = 'mixtral-8x7b-32768';
         this.temperature = 0.2;
         this.memoryTree = [];
         this.isConnected = false;
         this.messageCount = 0;
         this.typingTimeouts = [];
+        
+        // Groq API configuration
+        this.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
+        this.groqModels = [
+            'mixtral-8x7b-32768',
+            'llama2-70b-4096',
+            'gemma-7b-it',
+            'llama3-70b-8192',
+            'llama3-8b-8192'
+        ];
         
         // WFGY Reasoning Engine state
         this.semanticContext = new Map();
@@ -30,8 +43,12 @@ class ModernTxtOS {
     init() {
         this.loadSettings();
         this.setupEventListeners();
-        this.testConnection();
         this.initializePerformanceOptimizations();
+        
+        // Delay auto-connect to ensure DOM is fully loaded
+        setTimeout(() => {
+            this.autoConnectService();
+        }, 1000);
     }
 
     setupEventListeners() {
@@ -54,6 +71,31 @@ class ModernTxtOS {
             this.temperature = parseFloat(e.target.value);
             this.saveSettings();
         });
+
+        // Service switching
+        document.getElementById('service-select').addEventListener('change', (e) => {
+            this.currentService = e.target.value;
+            this.switchService();
+            this.saveSettings();
+        });
+
+        // Groq API key
+        const groqApiKeyInput = document.getElementById('groq-api-key');
+        if (groqApiKeyInput) {
+            groqApiKeyInput.addEventListener('change', (e) => {
+                this.groqApiKey = e.target.value;
+                this.saveSettings();
+            });
+        }
+
+        // Groq model selection
+        const groqModelSelect = document.getElementById('groq-model-select');
+        if (groqModelSelect) {
+            groqModelSelect.addEventListener('change', (e) => {
+                this.groqModel = e.target.value;
+                this.saveSettings();
+            });
+        }
     }
 
     initializePerformanceOptimizations() {
@@ -112,18 +154,111 @@ class ModernTxtOS {
         };
     }
 
-    async testConnection() {
+    async autoConnectService() {
+        const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
+        this.showNotification(`Connecting to ${serviceName}...`, 'info');
+        
+        // Try to connect automatically with retry logic
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries && !this.isConnected) {
+            try {
+                await this.testConnection(true);
+                if (this.isConnected) {
+                    this.showNotification(`Connected to ${serviceName} successfully!`, 'success');
+                    return;
+                }
+            } catch (error) {
+                console.log(`Connection attempt ${retryCount + 1} failed:`, error);
+            }
+            
+            retryCount++;
+            if (retryCount < maxRetries) {
+                await this.delay(2000); // Wait 2 seconds before retry
+            }
+        }
+        
+        if (!this.isConnected) {
+            this.showNotification(`Failed to connect to ${serviceName}. Please check configuration.`, 'error');
+            if (this.currentService === 'ollama') {
+                this.showCORSInstructions();
+            } else {
+                this.showGroqInstructions();
+            }
+        }
+    }
+
+    async testGroqConnection(silent = false) {
+        if (!this.groqApiKey) {
+            if (!silent) this.showNotification('Groq API key is required', 'error');
+            return false;
+        }
+
+        try {
+            const response = await fetch(this.groqUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.groqApiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: this.groqModel,
+                    messages: [{ role: 'user', content: 'test' }],
+                    max_tokens: 1,
+                    temperature: 0.1
+                })
+            });
+
+            if (response.ok || response.status === 400) { // 400 is OK for test - means API key works
+                this.isConnected = true;
+                if (!silent) this.showNotification('Connected to Groq!', 'success');
+                return true;
+            } else if (response.status === 401) {
+                throw new Error('Invalid API key');
+            } else if (response.status === 503) {
+                throw new Error('Service unavailable. Check Groq status.');
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+        } catch (error) {
+            this.isConnected = false;
+            if (!silent) {
+                this.showNotification(`Groq connection failed: ${error.message}`, 'error');
+            }
+            return false;
+        }
+    }
+
+    async testConnection(silent = false) {
+        if (this.currentService === 'groq') {
+            return await this.testGroqConnection(silent);
+        }
+        
         const statusElement = document.getElementById('ollama-status');
         const testBtn = document.getElementById('test-btn');
         
-        if (testBtn) {
+        if (!statusElement) {
+            console.warn('Status element not found');
+            return false;
+        }
+        
+        if (testBtn && !silent) {
             testBtn.disabled = true;
             testBtn.textContent = 'Testing...';
         }
         
         try {
+            // Enhanced CORS-aware request for Ollama
             const response = await fetch(`${this.ollamaUrl}/api/tags`, {
-                signal: AbortSignal.timeout(5000)
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                mode: 'cors',
+                credentials: 'omit',
+                signal: AbortSignal.timeout(8000)
             });
             
             if (response.ok) {
@@ -131,32 +266,106 @@ class ModernTxtOS {
                 this.isConnected = true;
                 statusElement.classList.add('online');
                 
-                // Update model list
+                // Update model list for Ollama
                 const modelSelect = document.getElementById('model-select');
-                modelSelect.innerHTML = '';
-                data.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.name;
-                    option.textContent = model.name;
-                    modelSelect.appendChild(option);
-                });
+                if (modelSelect) {
+                    modelSelect.innerHTML = '';
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.name;
+                        modelSelect.appendChild(option);
+                    });
+                }
                 
-                if (testBtn) testBtn.textContent = 'Connected';
+                if (testBtn && !silent) testBtn.textContent = 'Connected';
+                if (!silent) this.showNotification('Connected to Ollama!', 'success');
+                
+                return true;
             } else {
-                throw new Error('Connection failed');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
             this.isConnected = false;
             statusElement.classList.remove('online');
-            if (testBtn) testBtn.textContent = 'Failed';
+            
+            if (testBtn && !silent) testBtn.textContent = 'Failed';
+            
+            if (error.name === 'TypeError' && error.message.includes('CORS')) {
+                if (!silent) this.showCORSError();
+            } else if (!silent) {
+                this.showNotification(`Connection failed: ${error.message}`, 'error');
+            }
+            
+            return false;
         }
         
-        if (testBtn) {
+        if (testBtn && !silent) {
             setTimeout(() => {
                 testBtn.disabled = false;
                 testBtn.textContent = 'Test Connection';
             }, 2000);
         }
+    }
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    showCORSError() {
+        this.showNotification('CORS Error: Please start Ollama with CORS enabled', 'error');
+        this.showCORSInstructions();
+    }
+
+    showCORSInstructions() {
+        const instructions = `
+🛡️ **CORS Configuration Required**
+
+To enable secure API communications, start Ollama with CORS enabled:
+
+**MacOS/Linux:**
+\`\`\`bash
+OLLAMA_ORIGINS="*" ollama serve
+\`\`\`
+
+**Windows:**
+\`\`\`cmd
+set OLLAMA_ORIGINS=* && ollama serve
+\`\`\`
+
+**Docker:**
+\`\`\`bash
+docker run -d -v ollama:/root/.ollama -p 11434:11434 -e OLLAMA_ORIGINS="*" --name ollama ollama/ollama
+\`\`\`
+
+This enables cross-origin requests and prevents network blocking.
+        `;
+        
+        this.addMessage('system', instructions);
+    }
+
+    showGroqInstructions() {
+        const instructions = `
+🚀 **Groq API Configuration**
+
+To use Groq's super-fast inference:
+
+1. **Get your API key from:** https://console.groq.com/keys
+2. **Enter your API key in the settings**
+3. **Select Groq as your service**
+
+**Available Models:**
+- **mixtral-8x7b-32768** - Fast and capable (recommended)
+- **llama3-70b-8192** - Most capable
+- **llama3-8b-8192** - Fastest
+- **gemma-7b-it** - Google's Gemma
+
+**Service Status:** Check https://groqstatus.com/ for service availability.
+
+Groq provides extremely fast inference with no local setup required!
+        `;
+        
+        this.addMessage('system', instructions);
     }
 
     async sendMessage() {
@@ -165,7 +374,8 @@ class ModernTxtOS {
         
         if (!message) return;
         if (!this.isConnected) {
-            this.showNotification('Please connect to Ollama first', 'error');
+            const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
+            this.showNotification(`Please connect to ${serviceName} first`, 'error');
             return;
         }
 
@@ -173,12 +383,16 @@ class ModernTxtOS {
         if (this.handleSpecialCommand(message)) {
             input.value = '';
             this.autoResize(input);
+            input.focus();
             return;
         }
 
         // Clear input immediately for responsiveness
         input.value = '';
         this.autoResize(input);
+        
+        // Return focus to input for continuous typing
+        input.focus();
         
         // Add user message instantly
         this.addMessage('user', message);
@@ -190,10 +404,20 @@ class ModernTxtOS {
         const typingId = this.showTypingIndicator();
         
         try {
-            await this.streamResponse(message, typingId);
+            if (this.currentService === 'groq') {
+                await this.streamGroqResponse(message, typingId);
+            } else {
+                await this.streamResponse(message, typingId);
+            }
         } catch (error) {
             this.removeTypingIndicator(typingId);
             this.showNotification('Error: ' + error.message, 'error');
+        } finally {
+            // Always return focus to input after response
+            setTimeout(() => {
+                const input = document.getElementById('chat-input');
+                if (input) input.focus();
+            }, 100);
         }
     }
 
@@ -203,7 +427,12 @@ class ModernTxtOS {
         
         const response = await fetch(`${this.ollamaUrl}/api/generate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'omit',
             body: JSON.stringify({
                 model: this.currentModel,
                 prompt: fullMessage,
@@ -255,6 +484,51 @@ class ModernTxtOS {
         this.updateMemoryCount();
     }
 
+    async streamGroqResponse(message, typingId) {
+        const systemPrompt = this.buildSystemPrompt();
+        
+        const response = await fetch(this.groqUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.groqApiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: this.groqModel,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: message }
+                ],
+                max_tokens: 4000,
+                temperature: this.temperature,
+                stream: false // Groq doesn't support streaming in the same way
+            })
+        });
+
+        if (!response.ok) {
+            if (response.status === 503) {
+                throw new Error('Groq service unavailable. Check groqstatus.com');
+            } else if (response.status === 401) {
+                throw new Error('Invalid Groq API key');
+            } else {
+                throw new Error(`Groq API error: ${response.status}`);
+            }
+        }
+        
+        // Remove typing indicator
+        this.removeTypingIndicator(typingId);
+        
+        const data = await response.json();
+        const fullResponse = data.choices[0].message.content;
+        
+        // Create and show response message
+        const messageId = this.addMessage('assistant', fullResponse);
+        
+        // Update memory
+        this.addToMemory(message, fullResponse);
+        this.updateMemoryCount();
+    }
+
     addMessage(type, content) {
         const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const messageElement = this.createMessageElement(type, content, messageId);
@@ -288,18 +562,37 @@ class ModernTxtOS {
             <div class="message-bubble">
                 <div class="message-content">${this.formatContent(content)}</div>
                 <div class="message-actions">
-                    <button class="action-btn copy-btn" data-message-id="${messageId}">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <button class="action-btn copy-btn" data-message-id="${messageId}" title="Copy message">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
-                        Copy
                     </button>
-                    <button class="action-btn minimize-btn" data-message-id="${messageId}">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <button class="action-btn download-btn" data-message-id="${messageId}" title="Download">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7,10 12,15 17,10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="action-btn share-btn" data-message-id="${messageId}" title="Share">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                    </button>
+                    <button class="action-btn navigate-btn" data-message-id="${messageId}" title="Navigate">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9,18 15,12 9,6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="action-btn minimize-btn" data-message-id="${messageId}" title="Minimize">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 15L12 9L6 15"></path>
                         </svg>
-                        Minimize
                     </button>
                 </div>
             </div>
@@ -309,11 +602,32 @@ class ModernTxtOS {
     }
 
     formatContent(content) {
-        // Fast content formatting
-        return content
-            .replace(/\n/g, '<br>')
-            .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Escape HTML first to prevent code injection and layout breaks
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+        
+        // Process content safely
+        let processedContent = escapeHtml(content);
+        
+        // Handle code blocks first (multiline)
+        processedContent = processedContent.replace(/```([\s\S]*?)```/g, (match, code) => {
+            return `<pre class="code-block"><code>${code.trim()}</code></pre>`;
+        });
+        
+        // Handle inline code
+        processedContent = processedContent.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+        
+        // Handle line breaks
+        processedContent = processedContent.replace(/\n/g, '<br>');
+        
+        // Handle markdown-style formatting
+        processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        processedContent = processedContent.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        return processedContent;
     }
 
     addStreamingMessage(type) {
@@ -460,6 +774,12 @@ class ModernTxtOS {
             this.copyMessage(messageId);
         } else if (target.classList.contains('minimize-btn')) {
             this.toggleMessage(messageId);
+        } else if (target.classList.contains('download-btn')) {
+            this.downloadMessage(messageId);
+        } else if (target.classList.contains('share-btn')) {
+            this.shareMessage(messageId);
+        } else if (target.classList.contains('navigate-btn')) {
+            this.navigateToMessage(messageId);
         }
     }
 
@@ -468,6 +788,71 @@ class ModernTxtOS {
             event.preventDefault();
             this.sendMessage();
         }
+    }
+
+    downloadMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (!messageElement) return;
+        
+        const content = messageElement.querySelector('.message-content');
+        const text = content.textContent;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `message-${timestamp}.txt`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        this.showNotification('Message downloaded!', 'success');
+    }
+
+    shareMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (!messageElement) return;
+        
+        const content = messageElement.querySelector('.message-content');
+        const text = content.textContent;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'TXT OS Message',
+                text: text
+            }).catch(() => {
+                this.fallbackShare(text);
+            });
+        } else {
+            this.fallbackShare(text);
+        }
+    }
+
+    fallbackShare(text) {
+        const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.substring(0, 200) + '...')}`;
+        window.open(shareUrl, '_blank', 'width=550,height=420');
+        this.showNotification('Share dialog opened', 'info');
+    }
+
+    navigateToMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (!messageElement) return;
+        
+        messageElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Highlight the message briefly
+        messageElement.style.background = 'rgba(255, 107, 53, 0.1)';
+        messageElement.style.transition = 'background 0.3s ease';
+        
+        setTimeout(() => {
+            messageElement.style.background = '';
+        }, 1500);
+        
+        this.showNotification('Navigated to message', 'success');
     }
 
     showNotification(message, type = 'info') {
@@ -585,10 +970,38 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         }
     }
 
+    switchService() {
+        const ollamaSettings = document.getElementById('ollama-settings');
+        const groqSettings = document.getElementById('groq-settings');
+        const statusElement = document.getElementById('ollama-status');
+        
+        if (this.currentService === 'groq') {
+            ollamaSettings.style.display = 'none';
+            groqSettings.style.display = 'block';
+            statusElement.textContent = 'Groq';
+        } else {
+            ollamaSettings.style.display = 'block';
+            groqSettings.style.display = 'none';
+            statusElement.textContent = 'Ollama';
+        }
+        
+        // Reset connection status when switching
+        this.isConnected = false;
+        statusElement.classList.remove('online');
+        
+        // Auto-connect to new service
+        setTimeout(() => {
+            this.autoConnectService();
+        }, 500);
+    }
+
     saveSettings() {
         localStorage.setItem('modern-txt-os-settings', JSON.stringify({
             ollamaUrl: this.ollamaUrl,
+            groqApiKey: this.groqApiKey,
+            currentService: this.currentService,
             currentModel: this.currentModel,
+            groqModel: this.groqModel,
             temperature: this.temperature
         }));
     }
@@ -598,14 +1011,31 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         if (saved) {
             const settings = JSON.parse(saved);
             this.ollamaUrl = settings.ollamaUrl || this.ollamaUrl;
+            this.groqApiKey = settings.groqApiKey || this.groqApiKey;
+            this.currentService = settings.currentService || this.currentService;
             this.currentModel = settings.currentModel || this.currentModel;
+            this.groqModel = settings.groqModel || this.groqModel;
             this.temperature = settings.temperature || this.temperature;
             
             // Update UI
             document.getElementById('ollama-url').value = this.ollamaUrl;
             document.getElementById('model-select').value = this.currentModel;
+            document.getElementById('service-select').value = this.currentService;
             document.getElementById('temperature').value = this.temperature;
             document.getElementById('temp-value').textContent = this.temperature;
+            
+            const groqApiKeyInput = document.getElementById('groq-api-key');
+            if (groqApiKeyInput) {
+                groqApiKeyInput.value = this.groqApiKey;
+            }
+            
+            const groqModelSelect = document.getElementById('groq-model-select');
+            if (groqModelSelect) {
+                groqModelSelect.value = this.groqModel;
+            }
+            
+            // Apply service switching UI
+            this.switchService();
         }
     }
 
@@ -919,9 +1349,223 @@ function exportMemory() {
     txtOS.exportMemory();
 }
 
+function switchService() {
+    txtOS.switchService();
+}
+
+// Toolbar Functions
+function newChat() {
+    txtOS.clearChat();
+    txtOS.showNotification('New chat started', 'info');
+    
+    // Focus the input for immediate typing
+    setTimeout(() => {
+        const input = document.getElementById('chat-input');
+        if (input) input.focus();
+    }, 100);
+}
+
+function saveChat() {
+    const chatData = {
+        timestamp: new Date().toISOString(),
+        messages: Array.from(document.querySelectorAll('.message')).map(msg => ({
+            type: msg.classList.contains('user') ? 'user' : 'assistant',
+            content: msg.querySelector('.message-content').textContent,
+            timestamp: Date.now()
+        })),
+        memoryTree: txtOS.memoryTree,
+        service: txtOS.currentService,
+        model: txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel
+    };
+    
+    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    txtOS.showNotification('Chat saved successfully!', 'success');
+}
+
+function exportChat() {
+    const messages = Array.from(document.querySelectorAll('.message'))
+        .map(msg => {
+            const type = msg.classList.contains('user') ? 'User' : 'Assistant';
+            const content = msg.querySelector('.message-content').textContent;
+            return `${type}: ${content}`;
+        })
+        .join('\n\n');
+    
+    const exportData = `TXT OS Chat Export
+Generated: ${new Date().toLocaleString()}
+Service: ${txtOS.currentService === 'groq' ? 'Groq' : 'Ollama'}
+Model: ${txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel}
+
+${messages}`;
+    
+    const blob = new Blob([exportData], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-export-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    txtOS.showNotification('Chat exported successfully!', 'success');
+}
+
+function openFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.txt';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                if (file.name.endsWith('.json')) {
+                    const data = JSON.parse(e.target.result);
+                    if (data.messages) {
+                        txtOS.clearChat();
+                        data.messages.forEach(msg => {
+                            txtOS.addMessage(msg.type, msg.content);
+                        });
+                        txtOS.showNotification('Chat loaded successfully!', 'success');
+                    }
+                } else {
+                    txtOS.addMessage('system', `📄 **File Content:**\n\n${e.target.result}`);
+                    txtOS.showNotification('File loaded successfully!', 'success');
+                }
+            } catch (error) {
+                txtOS.showNotification('Error loading file', 'error');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function toggleSearch() {
+    const searchQuery = prompt('Search in chat history:');
+    if (!searchQuery) return;
+    
+    const messages = document.querySelectorAll('.message-content');
+    let found = false;
+    
+    messages.forEach(msg => {
+        const parent = msg.closest('.message');
+        if (msg.textContent.toLowerCase().includes(searchQuery.toLowerCase())) {
+            parent.style.background = 'rgba(255, 107, 53, 0.1)';
+            parent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            found = true;
+            setTimeout(() => {
+                parent.style.background = '';
+            }, 3000);
+        }
+    });
+    
+    if (found) {
+        txtOS.showNotification(`Found "${searchQuery}" in chat`, 'success');
+    } else {
+        txtOS.showNotification(`No results for "${searchQuery}"`, 'info');
+    }
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('dark-mode', isDark);
+    txtOS.showNotification(`${isDark ? 'Dark' : 'Light'} mode activated`, 'info');
+}
+
+function showHelp() {
+    txtOS.addMessage('system', `🏛️ **TXT OS v2.0 Help & Shortcuts**
+
+**Toolbar Icons:**
+- ➕ **New Chat** - Start a fresh conversation
+- 💾 **Save Chat** - Export chat as JSON file
+- 📥 **Export** - Export chat as text file  
+- 📁 **Open File** - Load chat or text files
+- 🔍 **Search** - Find text in current chat
+- 🌙 **Dark Mode** - Toggle dark/light theme
+- ❓ **Help** - Show this help message
+
+**Keyboard Shortcuts:**
+- **Enter** - Send message
+- **Shift + Enter** - New line in message
+- **Ctrl/Cmd + K** - Focus search
+- **Ctrl/Cmd + N** - New chat
+
+**AI Services:**
+- **Ollama** - Local AI models (requires local setup)
+- **Groq** - Cloud AI with super-fast inference
+
+**Special Commands:**
+- \`hello world\` - Initialize WFGY system
+- \`kbtest\` - Test knowledge boundaries  
+- \`tree\` - View semantic memory tree
+- \`help\` - Show command help
+
+Type any question to start reasoning with TXT OS!`);
+}
+
+// Drag and Drop functionality
+function handleDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    
+    // Add visual feedback
+    event.target.style.borderColor = 'var(--primary-color)';
+    event.target.style.backgroundColor = 'rgba(255, 107, 53, 0.1)';
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    
+    // Remove visual feedback
+    event.target.style.borderColor = 'var(--border-color)';
+    event.target.style.backgroundColor = 'var(--background)';
+    
+    const files = event.dataTransfer.files;
+    const text = event.dataTransfer.getData('text/plain');
+    
+    if (files.length > 0) {
+        // Handle file drops
+        for (let file of files) {
+            if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.json') || file.name.endsWith('.md')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    const currentText = document.getElementById('chat-input').value;
+                    document.getElementById('chat-input').value = currentText + (currentText ? '\n\n' : '') + `📎 **${file.name}**\n\n${content}`;
+                    txtOS.autoResize(document.getElementById('chat-input'));
+                };
+                reader.readAsText(file);
+            } else {
+                txtOS.showNotification(`File type not supported: ${file.type}`, 'error');
+            }
+        }
+    } else if (text) {
+        // Handle text drops
+        const currentText = document.getElementById('chat-input').value;
+        document.getElementById('chat-input').value = currentText + (currentText ? '\n\n' : '') + text;
+        txtOS.autoResize(document.getElementById('chat-input'));
+    }
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     window.txtOS = new ModernTxtOS();
+    
+    // Initialize dark mode
+    const savedDarkMode = localStorage.getItem('dark-mode');
+    if (savedDarkMode === 'true') {
+        document.body.classList.add('dark-mode');
+    }
     
     // Add streaming cursor animation
     const style = document.createElement('style');

@@ -15,17 +15,76 @@
                 <h1>TXT OS</h1>
                 <span class="version">v2.0</span>
             </div>
+            
+            <!-- Icon Toolbar -->
+            <div class="icon-toolbar">
+                <button class="toolbar-icon" onclick="newChat()" title="New Chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14m-7-7h14"></path>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="saveChat()" title="Save Chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                        <polyline points="7,3 7,8 15,8"></polyline>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="exportChat()" title="Export">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="openFile()" title="Open File">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10,9 9,9 8,9"></polyline>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="toggleSearch()" title="Search">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                
+                <div class="toolbar-divider"></div>
+                
+                <button class="toolbar-icon" onclick="toggleDarkMode()" title="Dark Mode">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="showHelp()" title="Help">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+            
             <div class="status-bar">
                 <div class="status-item">
                     <span class="status-dot" id="ollama-status"></span>
-                    <span>Ollama</span>
+                    <span>Service</span>
                 </div>
                 <div class="status-item">
                     <span class="status-dot" id="memory-status"></span>
                     <span>Memory</span>
                 </div>
                 <button class="settings-toggle" onclick="toggleSettings()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
@@ -50,37 +109,61 @@
 
 Type `help` to see all commands, or ask me anything to begin reasoning together.</div>
                         <div class="message-actions">
-                            <button class="action-btn" onclick="copyText(this)">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <button class="action-btn" onclick="copyText(this)" title="Copy message">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
-                                Copy
+                            </button>
+                            <button class="action-btn" onclick="downloadMessage(this)" title="Download">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="shareMessage(this)" title="Share">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="18" cy="5" r="3"></circle>
+                                    <circle cx="6" cy="12" r="3"></circle>
+                                    <circle cx="18" cy="19" r="3"></circle>
+                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="navigateToMessage(this)" title="Navigate">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9,18 15,12 9,6"></polyline>
+                                </svg>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Input Area -->
-            <div class="input-container">
-                <div class="input-wrapper">
-                    <textarea 
-                        class="chat-input" 
-                        id="chat-input" 
-                        placeholder="Message TXT OS..."
-                        rows="1"
-                        onkeydown="handleKeyPress(event)"
-                        oninput="autoResize(this)"
-                    ></textarea>
-                    <button class="send-button" id="send-button" onclick="sendMessage()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M22 2L11 13"></path>
-                            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-                        </svg>
-                    </button>
-                </div>
+            <!-- Input Area - TEXT ONLY -->
+            <div class="input-section">
+                <textarea 
+                    class="chat-input" 
+                    id="chat-input" 
+                    placeholder="Message TXT OS..."
+                    rows="1"
+                    onkeydown="handleKeyPress(event)"
+                    oninput="autoResize(this)"
+                    ondrop="handleDrop(event)"
+                    ondragover="handleDragOver(event)"
+                ></textarea>
             </div>
+        </div>
+
+        <!-- Send Button - COMPLETELY OUTSIDE CHAT CONTAINER -->
+        <div class="floating-button-container">
+            <button class="send-button" id="send-button" onclick="sendMessage()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13"></path>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                </svg>
+            </button>
         </div>
 
         <!-- Settings Sidebar -->
@@ -96,6 +179,17 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
             </div>
             <div class="sidebar-content">
                 <div class="settings-group">
+                    <h3>AI Service</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">Service</label>
+                        <select class="setting-input" id="service-select" onchange="switchService()">
+                            <option value="ollama">Ollama (Local)</option>
+                            <option value="groq">Groq (Cloud)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group" id="ollama-settings">
                     <h3>Ollama Configuration</h3>
                     <div class="setting-item">
                         <label class="setting-label">Server URL</label>
@@ -109,6 +203,28 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                             <option value="codellama">codellama</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="settings-group" id="groq-settings" style="display: none;">
+                    <h3>Groq Configuration</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">API Key</label>
+                        <input type="password" class="setting-input" id="groq-api-key" placeholder="gsk_...">
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">Model</label>
+                        <select class="setting-input" id="groq-model-select">
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B (Recommended)</option>
+                            <option value="llama3-70b-8192">Llama 3 70B</option>
+                            <option value="llama3-8b-8192">Llama 3 8B (Fastest)</option>
+                            <option value="gemma-7b-it">Gemma 7B</option>
+                            <option value="llama2-70b-4096">Llama 2 70B</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>General Settings</h3>
                     <div class="setting-item">
                         <label class="setting-label">Temperature: <span id="temp-value">0.2</span></label>
                         <input type="range" class="setting-input" id="temperature" min="0" max="1" step="0.1" value="0.2" oninput="updateTempValue(this.value)">

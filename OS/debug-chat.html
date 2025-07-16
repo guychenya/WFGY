@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WFGY Chat Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-btn { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>WFGY Chat Connection Debug</h1>
+    
+    <button class="test-btn" onclick="testConnection()">Test Ollama Connection</button>
+    <button class="test-btn" onclick="testChat()">Test Chat Message</button>
+    <button class="test-btn" onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        function clearResults() {
+            results.innerHTML = '';
+        }
+        
+        async function testConnection() {
+            log('Testing Ollama connection...', 'info');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:11434/api/tags');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Connected! Found ${data.models.length} models`, 'success');
+                    log(`Models: ${data.models.map(m => m.name).join(', ')}`, 'info');
+                } else {
+                    log(`❌ Connection failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Connection error: ${error.message}`, 'error');
+                
+                if (error.message.includes('fetch')) {
+                    log('💡 This looks like a CORS issue or ad blocker interference', 'info');
+                }
+            }
+        }
+        
+        async function testChat() {
+            log('Testing chat message...', 'info');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'llama2',
+                        prompt: 'Say hello in one sentence',
+                        stream: false
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Chat test successful!', 'success');
+                    log(`Response: ${data.response}`, 'info');
+                } else {
+                    log(`❌ Chat failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Chat error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
