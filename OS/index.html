@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TXT OS - Modern AI Reasoning System</title>
-    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' *;">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,29 +11,85 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <div class="logo-icon">🏛️</div>
+                <div class="logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M9 9h6v6H9z"></path>
+                    </svg>
+                </div>
                 <h1>TXT OS</h1>
                 <span class="version">v2.0</span>
             </div>
+            
+            <!-- Icon Toolbar -->
+            <div class="icon-toolbar">
+                <button class="toolbar-icon" onclick="newChat()" title="New Chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14m-7-7h14"></path>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="saveChat()" title="Save Chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                        <polyline points="7,3 7,8 15,8"></polyline>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="exportChat()" title="Export">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="openFile()" title="Open File">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10,9 9,9 8,9"></polyline>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="toggleSearch()" title="Search">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                
+                <div class="toolbar-divider"></div>
+                
+                <button class="toolbar-icon" onclick="toggleDarkMode()" title="Dark Mode">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                
+                <button class="toolbar-icon" onclick="showHelp()" title="Help">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+            
             <div class="status-bar">
                 <div class="status-item">
                     <span class="status-dot" id="ollama-status"></span>
-                    <span>Ollama</span>
+                    <span>Service</span>
                 </div>
                 <div class="status-item">
                     <span class="status-dot" id="memory-status"></span>
                     <span>Memory</span>
                 </div>
-                <button class="dashboard-toggle" onclick="toggleDashboard()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                </button>
                 <button class="settings-toggle" onclick="toggleSettings()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
@@ -47,157 +102,78 @@
             <div class="chat-messages" id="chat-messages">
                 <!-- Welcome Message -->
                 <div class="message assistant">
-                    <div class="message-avatar">🏛️</div>
+                    <div class="message-avatar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <path d="M9 9h6v6H9z"></path>
+                        </svg>
+                    </div>
                     <div class="message-bubble">
-                        <div class="message-content">Welcome to TXT OS! I'm your AI reasoning system with semantic memory and knowledge boundary detection.
+                        <div class="message-content">Welcome to TXT OS v2.0! I'm powered by the WFGY Reasoning Engine with advanced semantic capabilities.
 
-Try typing "hello world" to initialize the system, or ask me anything to begin our conversation.</div>
+**Features Available:**
+- Knowledge Boundary Detection (`kbtest`)
+- Semantic Tree Memory (`tree`)
+- HelloWorld.txt Integration (`helloworld`)
+- BBCR Protocol (`hello world`)
+
+Type `help` to see all commands, or ask me anything to begin reasoning together.</div>
                         <div class="message-actions">
-                            <button class="action-btn" onclick="copyText(this)">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <button class="action-btn" onclick="copyText(this)" title="Copy message">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
-                                Copy
+                            </button>
+                            <button class="action-btn" onclick="downloadMessage(this)" title="Download">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="shareMessage(this)" title="Share">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="18" cy="5" r="3"></circle>
+                                    <circle cx="6" cy="12" r="3"></circle>
+                                    <circle cx="18" cy="19" r="3"></circle>
+                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="navigateToMessage(this)" title="Navigate">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9,18 15,12 9,6"></polyline>
+                                </svg>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Input Area -->
-            <div class="input-container">
-                <div class="input-wrapper">
-                    <div class="file-attachments" id="file-attachments"></div>
-                    <div class="input-row">
-                        <button class="attachment-button" onclick="txtOS.triggerFileUpload()" title="Attach file">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                            </svg>
-                        </button>
-                        <textarea 
-                            class="chat-input" 
-                            id="chat-input" 
-                            placeholder="Message TXT OS..."
-                            rows="1"
-                            onkeydown="handleKeyPress(event)"
-                            oninput="txtOS.autoResize(this)"
-                        ></textarea>
-                        <button class="send-button" id="send-button" onclick="sendMessage()">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M22 2L11 13"></path>
-                                <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <input type="file" id="file-input" style="display: none;" multiple accept="image/*,video/*,audio/*,application/pdf,.txt,.doc,.docx,.json,.csv" onchange="txtOS.handleFileUpload(event)">
-                </div>
+            <!-- Input Area - TEXT ONLY -->
+            <div class="input-section">
+                <textarea 
+                    class="chat-input" 
+                    id="chat-input" 
+                    placeholder="Message TXT OS..."
+                    rows="1"
+                    onkeydown="handleKeyPress(event)"
+                    oninput="autoResize(this)"
+                    ondrop="handleDrop(event)"
+                    ondragover="handleDragOver(event)"
+                ></textarea>
             </div>
         </div>
 
-        <!-- Dashboard -->
-        <div class="dashboard" id="dashboard-panel">
-            <div class="dashboard-header">
-                <h2>WFGY Dashboard</h2>
-                <button class="dashboard-toggle" onclick="toggleDashboard()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M18 6L6 18"></path>
-                        <path d="M6 6L18 18"></path>
-                    </svg>
-                </button>
-            </div>
-            <div class="dashboard-content">
-                <!-- Semantic Tree Memory -->
-                <div class="dashboard-section">
-                    <h3>Semantic Tree Memory</h3>
-                    <div class="memory-tree-stats">
-                        <div class="tree-stats-item">
-                            <span>📊</span>
-                            <span id="tree-node-count">0 nodes</span>
-                        </div>
-                        <div class="tree-stats-item">
-                            <span>🔄</span>
-                            <span id="tree-depth">0 depth</span>
-                        </div>
-                        <button class="tree-clear-btn" onclick="txtOS.clearMemoryTree()">Clear</button>
-                    </div>
-                    <div class="memory-tree" id="memory-tree">
-                        <div class="tree-node root level-0">
-                            <div class="node-content" onclick="txtOS.selectTreeNode('root')">
-                                <div class="node-icon">🌳</div>
-                                <div class="node-text">Conversation Root</div>
-                                <div class="node-timestamp">Start</div>
-                            </div>
-                            <div class="node-children" id="tree-children"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Knowledge Boundary Detection -->
-                <div class="dashboard-section">
-                    <h3>Knowledge Boundary</h3>
-                    <div class="boundary-indicator">
-                        <div class="boundary-status" id="boundary-status">
-                            <span class="status-dot" id="boundary-dot"></span>
-                            <span id="boundary-text">Confident</span>
-                        </div>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" id="confidence-fill" style="width: 85%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Temperature Gauge -->
-                <div class="dashboard-section">
-                    <h3>Temperature Control</h3>
-                    <div class="temperature-gauge">
-                        <div class="gauge-container">
-                            <div class="gauge-arc" id="temp-gauge-arc"></div>
-                            <div class="gauge-needle" id="temp-needle"></div>
-                            <div class="gauge-center">
-                                <span id="temp-display">0.2</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Memory Nodes -->
-                <div class="dashboard-section">
-                    <h3>Memory Nodes</h3>
-                    <div class="memory-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">Active Nodes</span>
-                            <span class="stat-value" id="active-nodes">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Total Memory</span>
-                            <span class="stat-value" id="total-memory">0KB</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Reasoning Speed -->
-                <div class="dashboard-section">
-                    <h3>Reasoning Speed</h3>
-                    <div class="speed-meter">
-                        <div class="speed-bar">
-                            <div class="speed-fill" id="speed-fill" style="width: 0%"></div>
-                        </div>
-                        <div class="speed-stats">
-                            <span id="current-speed">0 ms</span>
-                            <span id="avg-speed">Avg: 0 ms</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Performance Chart -->
-                <div class="dashboard-section">
-                    <h3>Performance</h3>
-                    <div class="performance-chart">
-                        <canvas id="performance-canvas" width="280" height="120"></canvas>
-                    </div>
-                </div>
-            </div>
+        <!-- Send Button - COMPLETELY OUTSIDE CHAT CONTAINER -->
+        <div class="floating-button-container">
+            <button class="send-button" id="send-button" onclick="sendMessage()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13"></path>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                </svg>
+            </button>
         </div>
 
         <!-- Settings Sidebar -->
@@ -213,6 +189,17 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
             </div>
             <div class="sidebar-content">
                 <div class="settings-group">
+                    <h3>AI Service</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">Service</label>
+                        <select class="setting-input" id="service-select" onchange="switchService()">
+                            <option value="ollama">Ollama (Local)</option>
+                            <option value="groq">Groq (Cloud)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group" id="ollama-settings">
                     <h3>Ollama Configuration</h3>
                     <div class="setting-item">
                         <label class="setting-label">Server URL</label>
@@ -226,12 +213,34 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
                             <option value="codellama">codellama</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="settings-group" id="groq-settings" style="display: none;">
+                    <h3>Groq Configuration</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">API Key</label>
+                        <input type="password" class="setting-input" id="groq-api-key" placeholder="gsk_...">
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">Model</label>
+                        <select class="setting-input" id="groq-model-select">
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B (Recommended)</option>
+                            <option value="llama3-70b-8192">Llama 3 70B</option>
+                            <option value="llama3-8b-8192">Llama 3 8B (Fastest)</option>
+                            <option value="gemma-7b-it">Gemma 7B</option>
+                            <option value="llama2-70b-4096">Llama 2 70B</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>General Settings</h3>
                     <div class="setting-item">
                         <label class="setting-label">Temperature: <span id="temp-value">0.2</span></label>
                         <input type="range" class="setting-input" id="temperature" min="0" max="1" step="0.1" value="0.2" oninput="updateTempValue(this.value)">
                     </div>
                     <div class="setting-item">
-                        <button class="action-btn" onclick="testConnection()" id="test-btn">Connect</button>
+                        <button class="action-btn" onclick="testConnection()" id="test-btn">Test Connection</button>
                     </div>
                 </div>
 
@@ -245,62 +254,6 @@ Try typing "hello world" to initialize the system, or ask me anything to begin o
                     </div>
                     <div class="setting-item">
                         <button class="action-btn" onclick="clearChat()">Clear Chat</button>
-                    </div>
-                    <div class="setting-item">
-                        <button class="action-btn" onclick="txtOS.resetConnectionPermission()">Reset Connection Permission</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tree Output Modal -->
-    <div class="tree-output-modal" id="tree-output-modal">
-        <div class="tree-output-content">
-            <div class="tree-output-header">
-                <h3 class="tree-output-title" id="tree-output-title">Memory Node Details</h3>
-                <button class="tree-output-close" onclick="txtOS.closeTreeOutput()">×</button>
-            </div>
-            <div class="tree-output-meta" id="tree-output-meta">
-                <span>⏰ <span id="tree-output-time">--</span></span>
-                <span>📏 <span id="tree-output-length">-- chars</span></span>
-                <span>🎯 <span id="tree-output-confidence">--%</span></span>
-            </div>
-            <div class="tree-output-section">
-                <h4>💬 User Input</h4>
-                <div class="tree-output-text" id="tree-output-input">No input selected</div>
-            </div>
-            <div class="tree-output-section">
-                <h4>🤖 AI Response</h4>
-                <div class="tree-output-text" id="tree-output-response">No response selected</div>
-            </div>
-            <div class="tree-output-actions">
-                <button class="tree-action-btn secondary" onclick="txtOS.jumpToMessage()">
-                    📍 Jump to Message
-                </button>
-                <button class="tree-action-btn secondary" onclick="txtOS.copyTreeOutput()">
-                    📋 Copy Text
-                </button>
-                <div class="download-dropdown">
-                    <button class="tree-action-btn primary dropdown-toggle" onclick="txtOS.toggleDownloadDropdown()">
-                        💾 Download
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M6 9l6 6 6-6"></path>
-                        </svg>
-                    </button>
-                    <div class="dropdown-menu" id="download-dropdown">
-                        <button class="dropdown-item" onclick="txtOS.downloadNode('txt')">
-                            📄 Text (.txt)
-                        </button>
-                        <button class="dropdown-item" onclick="txtOS.downloadNode('json')">
-                            📋 JSON (.json)
-                        </button>
-                        <button class="dropdown-item" onclick="txtOS.downloadNode('md')">
-                            📝 Markdown (.md)
-                        </button>
-                        <button class="dropdown-item" onclick="txtOS.downloadAllNodes()">
-                            📦 All Nodes (.zip)
-                        </button>
                     </div>
                 </div>
             </div>

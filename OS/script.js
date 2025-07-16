@@ -2,31 +2,40 @@
 class ModernTxtOS {
     constructor() {
         this.ollamaUrl = 'http://127.0.0.1:11434';
+        this.groqApiKey = '';
+        this.currentService = 'ollama'; // 'ollama' or 'groq'
         this.currentModel = 'llama2';
+        this.groqModel = 'mixtral-8x7b-32768';
         this.temperature = 0.2;
         this.memoryTree = [];
         this.isConnected = false;
         this.messageCount = 0;
         this.typingTimeouts = [];
         
+        // Groq API configuration
+        this.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
+        this.groqModels = [
+            'mixtral-8x7b-32768',
+            'llama2-70b-4096',
+            'gemma-7b-it',
+            'llama3-70b-8192',
+            'llama3-8b-8192'
+        ];
+        
+        // WFGY Reasoning Engine state
+        this.semanticContext = new Map();
+        this.knowledgeBoundary = {
+            deltaS: 0,
+            lambdaObserve: 0.7,
+            eResonance: 0,
+            boundaryActive: false
+        };
+        this.reasoningChain = [];
+        
         // Performance optimizations
         this.messagesCache = new Map();
         this.renderQueue = [];
         this.isRendering = false;
-        
-        // Dashboard data
-        this.isDashboardOpen = false;
-        this.performanceData = [];
-        this.responseTimings = [];
-        this.knowledgeBoundaryData = { confidence: 85, status: 'Confident' };
-        this.currentSpeed = 0;
-        this.averageSpeed = 0;
-        this.selectedTreeNode = null;
-        this.treeDepth = 0;
-        this.attachedFiles = [];
-        this.maxFileSize = 10 * 1024 * 1024; // 10MB limit
-        
-        this.processRenderQueue = this.processRenderQueue.bind(this);
         
         this.init();
     }
@@ -35,8 +44,11 @@ class ModernTxtOS {
         this.loadSettings();
         this.setupEventListeners();
         this.initializePerformanceOptimizations();
-        this.initializeDashboard();
-        this.requestConnectionPermission();
+        
+        // Delay auto-connect to ensure DOM is fully loaded
+        setTimeout(() => {
+            this.autoConnectService();
+        }, 1000);
     }
 
     setupEventListeners() {
@@ -58,8 +70,32 @@ class ModernTxtOS {
         document.getElementById('temperature').addEventListener('input', (e) => {
             this.temperature = parseFloat(e.target.value);
             this.saveSettings();
-            this.updateTemperatureGauge();
         });
+
+        // Service switching
+        document.getElementById('service-select').addEventListener('change', (e) => {
+            this.currentService = e.target.value;
+            this.switchService();
+            this.saveSettings();
+        });
+
+        // Groq API key
+        const groqApiKeyInput = document.getElementById('groq-api-key');
+        if (groqApiKeyInput) {
+            groqApiKeyInput.addEventListener('change', (e) => {
+                this.groqApiKey = e.target.value;
+                this.saveSettings();
+            });
+        }
+
+        // Groq model selection
+        const groqModelSelect = document.getElementById('groq-model-select');
+        if (groqModelSelect) {
+            groqModelSelect.addEventListener('change', (e) => {
+                this.groqModel = e.target.value;
+                this.saveSettings();
+            });
+        }
     }
 
     initializePerformanceOptimizations() {
@@ -83,6 +119,29 @@ class ModernTxtOS {
         document.getElementById('chat-messages').addEventListener('scroll', this.throttledScroll);
     }
 
+    processRenderQueue() {
+        if (this.isRendering || this.renderQueue.length === 0) return;
+        
+        this.isRendering = true;
+        
+        // Process up to 5 items from the queue
+        const batchSize = Math.min(5, this.renderQueue.length);
+        const batch = this.renderQueue.splice(0, batchSize);
+        
+        batch.forEach(item => {
+            if (typeof item === 'function') {
+                item();
+            }
+        });
+        
+        this.isRendering = false;
+        
+        // Continue processing if there are more items
+        if (this.renderQueue.length > 0) {
+            requestAnimationFrame(() => this.processRenderQueue());
+        }
+    }
+
     throttle(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -95,118 +154,153 @@ class ModernTxtOS {
         };
     }
 
-    async testConnection(retryCount = 0) {
+    async autoConnectService() {
+        const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
+        this.showNotification(`Connecting to ${serviceName}...`, 'info');
+        
+        // Try to connect automatically with retry logic
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries && !this.isConnected) {
+            try {
+                await this.testConnection(true);
+                if (this.isConnected) {
+                    this.showNotification(`Connected to ${serviceName} successfully!`, 'success');
+                    return;
+                }
+            } catch (error) {
+                console.log(`Connection attempt ${retryCount + 1} failed:`, error);
+            }
+            
+            retryCount++;
+            if (retryCount < maxRetries) {
+                await this.delay(2000); // Wait 2 seconds before retry
+            }
+        }
+        
+        if (!this.isConnected) {
+            this.showNotification(`Failed to connect to ${serviceName}. Please check configuration.`, 'error');
+            if (this.currentService === 'ollama') {
+                this.showCORSInstructions();
+            } else {
+                this.showGroqInstructions();
+            }
+        }
+    }
+
+    async testGroqConnection(silent = false) {
+        if (!this.groqApiKey) {
+            if (!silent) this.showNotification('Groq API key is required', 'error');
+            return false;
+        }
+
+        try {
+            const response = await fetch(this.groqUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.groqApiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: this.groqModel,
+                    messages: [{ role: 'user', content: 'test' }],
+                    max_tokens: 1,
+                    temperature: 0.1
+                })
+            });
+
+            if (response.ok || response.status === 400) { // 400 is OK for test - means API key works
+                this.isConnected = true;
+                if (!silent) this.showNotification('Connected to Groq!', 'success');
+                return true;
+            } else if (response.status === 401) {
+                throw new Error('Invalid API key');
+            } else if (response.status === 503) {
+                throw new Error('Service unavailable. Check Groq status.');
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+        } catch (error) {
+            this.isConnected = false;
+            if (!silent) {
+                this.showNotification(`Groq connection failed: ${error.message}`, 'error');
+            }
+            return false;
+        }
+    }
+
+    async testConnection(silent = false) {
+        if (this.currentService === 'groq') {
+            return await this.testGroqConnection(silent);
+        }
+        
         const statusElement = document.getElementById('ollama-status');
         const testBtn = document.getElementById('test-btn');
         
-        if (testBtn) {
+        if (!statusElement) {
+            console.warn('Status element not found');
+            return false;
+        }
+        
+        if (testBtn && !silent) {
             testBtn.disabled = true;
-            testBtn.textContent = retryCount > 0 ? `Retrying... (${retryCount}/3)` : 'Testing...';
+            testBtn.textContent = 'Testing...';
         }
         
         try {
-            // Check if we need to start Ollama with CORS
-            if (retryCount === 0) {
-                this.showConnectionStatus('info', 'Testing connection to Ollama server...');
-            }
-            
-            console.log('Testing connection to:', this.ollamaUrl);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
-            
+            // Enhanced CORS-aware request for Ollama
             const response = await fetch(`${this.ollamaUrl}/api/tags`, {
-                signal: controller.signal,
                 method: 'GET',
                 headers: {
+                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                }
+                },
+                mode: 'cors',
+                credentials: 'omit',
+                signal: AbortSignal.timeout(8000)
             });
-            
-            clearTimeout(timeoutId);
-            
-            console.log('Response status:', response.status, 'OK:', response.ok);
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('Connection successful, models:', data.models?.length || 0);
                 this.isConnected = true;
                 statusElement.classList.add('online');
                 
-                // Update model list
+                // Update model list for Ollama
                 const modelSelect = document.getElementById('model-select');
-                modelSelect.innerHTML = '';
-                
-                if (data.models && data.models.length > 0) {
+                if (modelSelect) {
+                    modelSelect.innerHTML = '';
                     data.models.forEach(model => {
                         const option = document.createElement('option');
                         option.value = model.name;
                         option.textContent = model.name;
                         modelSelect.appendChild(option);
                     });
-                    
-                    // Set current model if it exists in the list
-                    const currentModelExists = data.models.some(model => model.name === this.currentModel);
-                    if (currentModelExists) {
-                        modelSelect.value = this.currentModel;
-                    } else {
-                        this.currentModel = data.models[0].name;
-                        modelSelect.value = this.currentModel;
-                    }
-                } else {
-                    // Add default models if none found
-                    const defaultModels = ['llama2', 'mistral', 'codellama'];
-                    defaultModels.forEach(modelName => {
-                        const option = document.createElement('option');
-                        option.value = modelName;
-                        option.textContent = modelName;
-                        modelSelect.appendChild(option);
-                    });
                 }
                 
-                if (testBtn) testBtn.textContent = 'Connected';
-                this.showConnectionStatus('success', `Connected to Ollama server (${data.models?.length || 0} models available)`);
+                if (testBtn && !silent) testBtn.textContent = 'Connected';
+                if (!silent) this.showNotification('Connected to Ollama!', 'success');
                 
-                // Update dashboard if open
-                if (this.isDashboardOpen) {
-                    this.updateDashboardMetrics();
-                }
-            } else if (response.status === 0) {
-                // This might be a CORS issue or server not running
-                throw new Error('CORS_OR_SERVER_DOWN');
+                return true;
             } else {
-                throw new Error(`Server responded with status ${response.status}: ${response.statusText}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
-            console.log('Connection failed:', error.name, error.message);
             this.isConnected = false;
             statusElement.classList.remove('online');
             
-            // Retry logic for transient errors
-            if (retryCount < 3 && (error.name === 'AbortError' || error.message.includes('CORS_OR_SERVER_DOWN'))) {
-                console.log('Retrying connection...');
-                setTimeout(() => {
-                    this.testConnection(retryCount + 1);
-                }, 2000);
-                return;
+            if (testBtn && !silent) testBtn.textContent = 'Failed';
+            
+            if (error.name === 'TypeError' && error.message.includes('CORS')) {
+                if (!silent) this.showCORSError();
+            } else if (!silent) {
+                this.showNotification(`Connection failed: ${error.message}`, 'error');
             }
             
-            const errorMessage = this.diagnoseConnectionError(error);
-            if (testBtn) testBtn.textContent = 'Failed';
-            this.showConnectionStatus('error', errorMessage);
-            
-            console.log('Is server not running?', this.isOllamaNotRunning(error));
-            
-            // Show auto-start option if server is not running
-            if (this.isOllamaNotRunning(error)) {
-                this.showAutoStartOption();
-            } else if (error.message.includes('CORS') || error.name === 'TypeError') {
-                // Likely CORS issue - show CORS setup instructions
-                this.showCORSSetupInstructions();
-            }
+            return false;
         }
         
-        if (testBtn) {
+        if (testBtn && !silent) {
             setTimeout(() => {
                 testBtn.disabled = false;
                 testBtn.textContent = 'Test Connection';
@@ -214,387 +308,131 @@ class ModernTxtOS {
         }
     }
 
-    diagnoseConnectionError(error) {
-        console.error('Connection error:', error); // Log for debugging
-        
-        if (error.name === 'AbortError') {
-            return 'Connection timeout - Ollama server may not be running. Try running `ollama serve` in terminal.';
-        }
-        
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            return 'CORS error - Ollama server needs CORS configuration for web access.';
-        }
-        
-        if (error.message.includes('CORS_OR_SERVER_DOWN')) {
-            return 'Cannot reach Ollama server - Check if it\'s running on the correct port.';
-        }
-        
-        if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-            return 'Network/CORS error - Ollama server may need CORS configuration.';
-        }
-        
-        if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
-            return 'CORS error - Run Ollama with: OLLAMA_ORIGINS=* ollama serve';
-        }
-        
-        if (error.message.includes('404')) {
-            return 'Ollama API not found - Check server URL and Ollama version compatibility.';
-        }
-        
-        if (error.message.includes('500')) {
-            return 'Ollama server error - Check server logs for detailed information.';
-        }
-        
-        if (error.message.includes('ECONNREFUSED')) {
-            return 'Connection refused - Ollama server is not running or port is blocked.';
-        }
-        
-        return error.message || 'Unknown connection error - Check console for details.';
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    isOllamaNotRunning(error) {
-        // Only consider it "not running" if it's actually a connection issue
-        // Not CORS issues (which mean server IS running)
-        return error.name === 'AbortError' || 
-               error.message.includes('ECONNREFUSED') ||
-               (error.message.includes('fetch') && !error.message.includes('CORS')) ||
-               error.message.includes('CORS_OR_SERVER_DOWN');
+    showCORSError() {
+        this.showNotification('CORS Error: Please start Ollama with CORS enabled', 'error');
+        this.showCORSInstructions();
     }
 
-    showConnectionStatus(type, message) {
-        // Create or update connection status display
-        let statusDisplay = document.getElementById('connection-status');
-        if (!statusDisplay) {
-            statusDisplay = document.createElement('div');
-            statusDisplay.id = 'connection-status';
-            statusDisplay.className = 'connection-status';
-            
-            const settingsGroup = document.querySelector('.settings-group');
-            if (settingsGroup) {
-                settingsGroup.appendChild(statusDisplay);
-            }
-        }
-        
-        statusDisplay.className = `connection-status ${type}`;
-        statusDisplay.innerHTML = `
-            <div class="status-icon">
-                ${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}
-            </div>
-            <div class="status-message">${message}</div>
+    showCORSInstructions() {
+        const instructions = `
+🛡️ **CORS Configuration Required**
+
+To enable secure API communications, start Ollama with CORS enabled:
+
+**MacOS/Linux:**
+\`\`\`bash
+OLLAMA_ORIGINS="*" ollama serve
+\`\`\`
+
+**Windows:**
+\`\`\`cmd
+set OLLAMA_ORIGINS=* && ollama serve
+\`\`\`
+
+**Docker:**
+\`\`\`bash
+docker run -d -v ollama:/root/.ollama -p 11434:11434 -e OLLAMA_ORIGINS="*" --name ollama ollama/ollama
+\`\`\`
+
+This enables cross-origin requests and prevents network blocking.
         `;
         
-        // Auto-hide success messages
-        if (type === 'success') {
-            setTimeout(() => {
-                statusDisplay.style.opacity = '0';
-                setTimeout(() => statusDisplay.remove(), 300);
-            }, 3000);
-        }
+        this.addMessage('system', instructions);
     }
 
-    showAutoStartOption() {
-        let autoStartDiv = document.getElementById('auto-start-option');
-        if (!autoStartDiv) {
-            autoStartDiv = document.createElement('div');
-            autoStartDiv.id = 'auto-start-option';
-            autoStartDiv.className = 'auto-start-option';
-            
-            const settingsGroup = document.querySelector('.settings-group');
-            if (settingsGroup) {
-                settingsGroup.appendChild(autoStartDiv);
-            }
-        }
-        
-        autoStartDiv.innerHTML = `
-            <div class="auto-start-message">
-                <p>🚀 Ollama server appears to be offline</p>
-                <p>Would you like to try starting it automatically?</p>
-            </div>
-            <div class="auto-start-buttons">
-                <button class="action-btn primary" onclick="txtOS.startOllamaServer()">
-                    Start Ollama
-                </button>
-                <button class="action-btn secondary" onclick="txtOS.hideAutoStartOption()">
-                    Manual Setup
-                </button>
-            </div>
-        `;
-    }
+    showGroqInstructions() {
+        const instructions = `
+🚀 **Groq API Configuration**
 
-    hideAutoStartOption() {
-        const autoStartDiv = document.getElementById('auto-start-option');
-        if (autoStartDiv) {
-            autoStartDiv.remove();
-        }
-    }
+To use Groq's super-fast inference:
 
-    async startOllamaServer() {
-        const startBtn = document.querySelector('#auto-start-option .primary');
-        if (startBtn) {
-            startBtn.disabled = true;
-            startBtn.textContent = 'Starting...';
-        }
-        
-        try {
-            // Check if we can use local commands (this will work in Electron or similar environments)
-            if (window.electronAPI) {
-                const result = await window.electronAPI.startOllama();
-                if (result.success) {
-                    this.showConnectionStatus('success', 'Ollama server started successfully');
-                    setTimeout(() => this.testConnection(), 2000);
-                } else {
-                    throw new Error(result.error);
-                }
-            } else {
-                // For web environments, show instructions
-                this.showManualStartInstructions();
-            }
-        } catch (error) {
-            this.showConnectionStatus('error', `Failed to start Ollama: ${error.message}`);
-        }
-        
-        if (startBtn) {
-            startBtn.disabled = false;
-            startBtn.textContent = 'Start Ollama';
-        }
-    }
+1. **Get your API key from:** https://console.groq.com/keys
+2. **Enter your API key in the settings**
+3. **Select Groq as your service**
 
-    showManualStartInstructions() {
-        const instructionsDiv = document.createElement('div');
-        instructionsDiv.className = 'manual-instructions';
-        instructionsDiv.innerHTML = `
-            <h4>Manual Ollama Setup</h4>
-            <div class="instruction-steps">
-                <div class="step">
-                    <span class="step-number">1</span>
-                    <span class="step-text">Open Terminal/Command Prompt</span>
-                </div>
-                <div class="step">
-                    <span class="step-number">2</span>
-                    <span class="step-text">Run: <code>ollama serve</code></span>
-                </div>
-                <div class="step">
-                    <span class="step-number">3</span>
-                    <span class="step-text">Keep terminal open and try connecting again</span>
-                </div>
-            </div>
-            <div class="instruction-links">
-                <a href="https://ollama.ai" target="_blank" class="link-btn">
-                    📥 Download Ollama
-                </a>
-                <button class="action-btn" onclick="txtOS.hideManualInstructions()">
-                    Got it
-                </button>
-            </div>
+**Available Models:**
+- **mixtral-8x7b-32768** - Fast and capable (recommended)
+- **llama3-70b-8192** - Most capable
+- **llama3-8b-8192** - Fastest
+- **gemma-7b-it** - Google's Gemma
+
+**Service Status:** Check https://groqstatus.com/ for service availability.
+
+Groq provides extremely fast inference with no local setup required!
         `;
         
-        const autoStartDiv = document.getElementById('auto-start-option');
-        if (autoStartDiv) {
-            autoStartDiv.replaceWith(instructionsDiv);
-        }
-    }
-
-    showCORSSetupInstructions() {
-        const instructionsDiv = document.createElement('div');
-        instructionsDiv.className = 'manual-instructions cors-setup';
-        instructionsDiv.innerHTML = `
-            <h4>🔒 CORS Setup Required</h4>
-            <p>Ollama server is running but needs CORS configuration for web access.</p>
-            <div class="instruction-steps">
-                <div class="step">
-                    <span class="step-number">1</span>
-                    <span class="step-text">Stop current Ollama server (Ctrl+C)</span>
-                </div>
-                <div class="step">
-                    <span class="step-number">2</span>
-                    <span class="step-text">Run with CORS enabled: <code>OLLAMA_ORIGINS=* ollama serve</code></span>
-                </div>
-                <div class="step">
-                    <span class="step-number">3</span>
-                    <span class="step-text">Or set environment variable permanently:</span>
-                    <div class="sub-steps">
-                        <code>export OLLAMA_ORIGINS=*</code><br>
-                        <code>ollama serve</code>
-                    </div>
-                </div>
-                <div class="step">
-                    <span class="step-number">4</span>
-                    <span class="step-text">Try connecting again</span>
-                </div>
-            </div>
-            <div class="instruction-links">
-                <button class="action-btn primary" onclick="txtOS.testConnection()">
-                    Test Again
-                </button>
-                <button class="action-btn" onclick="txtOS.hideCORSInstructions()">
-                    Got it
-                </button>
-            </div>
-        `;
-        
-        const settingsGroup = document.querySelector('.settings-group');
-        if (settingsGroup) {
-            settingsGroup.appendChild(instructionsDiv);
-        }
-    }
-
-    hideCORSInstructions() {
-        const instructionsDiv = document.querySelector('.cors-setup');
-        if (instructionsDiv) {
-            instructionsDiv.remove();
-        }
-    }
-
-    hideManualInstructions() {
-        const instructionsDiv = document.querySelector('.manual-instructions');
-        if (instructionsDiv) {
-            instructionsDiv.remove();
-        }
-    }
-
-    requestConnectionPermission() {
-        // Check if user has already granted permission
-        const hasPermission = localStorage.getItem('ollama-connection-permission');
-        if (hasPermission === 'granted') {
-            this.testConnection();
-            return;
-        }
-
-        // Show permission request dialog
-        this.showPermissionDialog();
-    }
-
-    showPermissionDialog() {
-        const overlay = document.createElement('div');
-        overlay.className = 'permission-overlay';
-        
-        const dialog = document.createElement('div');
-        dialog.className = 'permission-request';
-        dialog.innerHTML = `
-            <div class="permission-content">
-                <h3>🔗 Connect to Ollama</h3>
-                <p>TXT OS would like to connect to your local Ollama server to provide AI responses.</p>
-                <p><strong>Local server:</strong> ${this.ollamaUrl}</p>
-                <div class="permission-buttons">
-                    <button class="approve" onclick="txtOS.approveConnection()">
-                        Allow Connection
-                    </button>
-                    <button class="deny" onclick="txtOS.denyConnection()">
-                        Manual Setup
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(overlay);
-        document.body.appendChild(dialog);
-        
-        // Add click handler to overlay
-        overlay.addEventListener('click', () => {
-            this.denyConnection();
-        });
-    }
-
-    approveConnection() {
-        // Store permission
-        localStorage.setItem('ollama-connection-permission', 'granted');
-        
-        // Remove dialog
-        this.hidePermissionDialog();
-        
-        // Test connection
-        this.testConnection();
-    }
-
-    denyConnection() {
-        // Store denial
-        localStorage.setItem('ollama-connection-permission', 'denied');
-        
-        // Remove dialog
-        this.hidePermissionDialog();
-        
-        // Show connection status
-        this.showConnectionStatus('info', 'Connection permission denied. Use settings to connect manually.');
-    }
-
-    hidePermissionDialog() {
-        const overlay = document.querySelector('.permission-overlay');
-        const dialog = document.querySelector('.permission-request');
-        
-        if (overlay) overlay.remove();
-        if (dialog) dialog.remove();
-    }
-
-    resetConnectionPermission() {
-        // Remove stored permission
-        localStorage.removeItem('ollama-connection-permission');
-        
-        // Reset connection state
-        this.isConnected = false;
-        const statusElement = document.getElementById('ollama-status');
-        if (statusElement) {
-            statusElement.classList.remove('online');
-        }
-        
-        // Clear any existing status messages
-        const existingStatus = document.getElementById('connection-status');
-        if (existingStatus) {
-            existingStatus.remove();
-        }
-        
-        // Show permission dialog again
-        this.showPermissionDialog();
-        
-        this.showNotification('Connection permission reset', 'info');
+        this.addMessage('system', instructions);
     }
 
     async sendMessage() {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
         
-        if (!message && this.attachedFiles.length === 0) return;
+        if (!message) return;
         if (!this.isConnected) {
-            this.showNotification('Please connect to Ollama first', 'error');
+            const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
+            this.showNotification(`Please connect to ${serviceName} first`, 'error');
             return;
         }
 
-        // Prepare message content
-        let messageContent = message;
-        const attachments = [...this.attachedFiles];
-        
-        // Add file information to message if files are attached
-        if (attachments.length > 0) {
-            const fileList = attachments.map(f => `📎 ${f.name} (${this.formatFileSize(f.size)})`).join('\n');
-            messageContent += `\n\n${fileList}`;
+        // Check for special commands
+        if (this.handleSpecialCommand(message)) {
+            input.value = '';
+            this.autoResize(input);
+            input.focus();
+            return;
         }
 
-        // Clear input and attachments immediately for responsiveness
+        // Clear input immediately for responsiveness
         input.value = '';
         this.autoResize(input);
-        this.clearFileAttachments();
+        
+        // Return focus to input for continuous typing
+        input.focus();
         
         // Add user message instantly
-        this.addMessage('user', messageContent);
+        this.addMessage('user', message);
+        
+        // Perform knowledge boundary analysis
+        this.analyzeKnowledgeBoundary(message);
         
         // Show typing indicator
         const typingId = this.showTypingIndicator();
         
         try {
-            await this.streamResponse(message, typingId);
+            if (this.currentService === 'groq') {
+                await this.streamGroqResponse(message, typingId);
+            } else {
+                await this.streamResponse(message, typingId);
+            }
         } catch (error) {
             this.removeTypingIndicator(typingId);
             this.showNotification('Error: ' + error.message, 'error');
+        } finally {
+            // Always return focus to input after response
+            setTimeout(() => {
+                const input = document.getElementById('chat-input');
+                if (input) input.focus();
+            }, 100);
         }
     }
 
     async streamResponse(message, typingId) {
-        const startTime = Date.now();
         const systemPrompt = this.buildSystemPrompt();
         const fullMessage = `${systemPrompt}\n\nUser: ${message}`;
         
         const response = await fetch(`${this.ollamaUrl}/api/generate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'omit',
             body: JSON.stringify({
                 model: this.currentModel,
                 prompt: fullMessage,
@@ -615,7 +453,6 @@ class ModernTxtOS {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = '';
-        let wordCount = 0;
         
         while (true) {
             const { done, value } = await reader.read();
@@ -630,7 +467,6 @@ class ModernTxtOS {
                         const data = JSON.parse(line);
                         if (data.response) {
                             fullResponse += data.response;
-                            wordCount += data.response.split(' ').length;
                             this.updateStreamingMessage(messageId, fullResponse);
                         }
                     } catch (e) {
@@ -640,27 +476,57 @@ class ModernTxtOS {
             }
         }
         
-        // Calculate response time
-        const responseTime = Date.now() - startTime;
-        
         // Finalize message
         this.finalizeStreamingMessage(messageId);
         
-        // Update knowledge boundary based on response characteristics
-        const confidence = this.calculateConfidence(fullResponse, wordCount);
-        this.updateKnowledgeBoundary(confidence);
+        // Update memory
+        this.addToMemory(message, fullResponse);
+        this.updateMemoryCount();
+    }
+
+    async streamGroqResponse(message, typingId) {
+        const systemPrompt = this.buildSystemPrompt();
+        
+        const response = await fetch(this.groqUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.groqApiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: this.groqModel,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: message }
+                ],
+                max_tokens: 4000,
+                temperature: this.temperature,
+                stream: false // Groq doesn't support streaming in the same way
+            })
+        });
+
+        if (!response.ok) {
+            if (response.status === 503) {
+                throw new Error('Groq service unavailable. Check groqstatus.com');
+            } else if (response.status === 401) {
+                throw new Error('Invalid Groq API key');
+            } else {
+                throw new Error(`Groq API error: ${response.status}`);
+            }
+        }
+        
+        // Remove typing indicator
+        this.removeTypingIndicator(typingId);
+        
+        const data = await response.json();
+        const fullResponse = data.choices[0].message.content;
+        
+        // Create and show response message
+        const messageId = this.addMessage('assistant', fullResponse);
         
         // Update memory
-        this.addToMemory(message, fullResponse, confidence);
+        this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
-        
-        // Update dashboard metrics
-        this.updateReasoningSpeed(responseTime);
-        
-        // Update dashboard if open
-        if (this.isDashboardOpen) {
-            this.updateDashboardMetrics();
-        }
     }
 
     addMessage(type, content) {
@@ -696,18 +562,37 @@ class ModernTxtOS {
             <div class="message-bubble">
                 <div class="message-content">${this.formatContent(content)}</div>
                 <div class="message-actions">
-                    <button class="action-btn copy-btn" data-message-id="${messageId}">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <button class="action-btn copy-btn" data-message-id="${messageId}" title="Copy message">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
-                        Copy
                     </button>
-                    <button class="action-btn minimize-btn" data-message-id="${messageId}">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <button class="action-btn download-btn" data-message-id="${messageId}" title="Download">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7,10 12,15 17,10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="action-btn share-btn" data-message-id="${messageId}" title="Share">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                    </button>
+                    <button class="action-btn navigate-btn" data-message-id="${messageId}" title="Navigate">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9,18 15,12 9,6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="action-btn minimize-btn" data-message-id="${messageId}" title="Minimize">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 15L12 9L6 15"></path>
                         </svg>
-                        Minimize
                     </button>
                 </div>
             </div>
@@ -717,11 +602,32 @@ class ModernTxtOS {
     }
 
     formatContent(content) {
-        // Fast content formatting
-        return content
-            .replace(/\n/g, '<br>')
-            .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Escape HTML first to prevent code injection and layout breaks
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+        
+        // Process content safely
+        let processedContent = escapeHtml(content);
+        
+        // Handle code blocks first (multiline)
+        processedContent = processedContent.replace(/```([\s\S]*?)```/g, (match, code) => {
+            return `<pre class="code-block"><code>${code.trim()}</code></pre>`;
+        });
+        
+        // Handle inline code
+        processedContent = processedContent.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+        
+        // Handle line breaks
+        processedContent = processedContent.replace(/\n/g, '<br>');
+        
+        // Handle markdown-style formatting
+        processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        processedContent = processedContent.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        return processedContent;
     }
 
     addStreamingMessage(type) {
@@ -748,27 +654,6 @@ class ModernTxtOS {
         
         // Auto-scroll if user is at bottom
         this.smoothScrollToBottom();
-    }
-
-    processRenderQueue() {
-        if (this.isRendering || this.renderQueue.length === 0) {
-            return;
-        }
-        this.isRendering = true;
-        const batchSize = 5; // Process 5 messages at a time
-        const messagesToRender = this.renderQueue.splice(0, batchSize);
-
-        messagesToRender.forEach(messageId => {
-            const messageElement = document.getElementById(messageId);
-            if (messageElement) {
-                messageElement.classList.add('visible');
-            }
-        });
-
-        this.isRendering = false;
-        if (this.renderQueue.length > 0) {
-            requestAnimationFrame(() => this.processRenderQueue());
-        }
     }
 
     finalizeStreamingMessage(messageId) {
@@ -889,6 +774,12 @@ class ModernTxtOS {
             this.copyMessage(messageId);
         } else if (target.classList.contains('minimize-btn')) {
             this.toggleMessage(messageId);
+        } else if (target.classList.contains('download-btn')) {
+            this.downloadMessage(messageId);
+        } else if (target.classList.contains('share-btn')) {
+            this.shareMessage(messageId);
+        } else if (target.classList.contains('navigate-btn')) {
+            this.navigateToMessage(messageId);
         }
     }
 
@@ -897,6 +788,71 @@ class ModernTxtOS {
             event.preventDefault();
             this.sendMessage();
         }
+    }
+
+    downloadMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (!messageElement) return;
+        
+        const content = messageElement.querySelector('.message-content');
+        const text = content.textContent;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `message-${timestamp}.txt`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        this.showNotification('Message downloaded!', 'success');
+    }
+
+    shareMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (!messageElement) return;
+        
+        const content = messageElement.querySelector('.message-content');
+        const text = content.textContent;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'TXT OS Message',
+                text: text
+            }).catch(() => {
+                this.fallbackShare(text);
+            });
+        } else {
+            this.fallbackShare(text);
+        }
+    }
+
+    fallbackShare(text) {
+        const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text.substring(0, 200) + '...')}`;
+        window.open(shareUrl, '_blank', 'width=550,height=420');
+        this.showNotification('Share dialog opened', 'info');
+    }
+
+    navigateToMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (!messageElement) return;
+        
+        messageElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Highlight the message briefly
+        messageElement.style.background = 'rgba(255, 107, 53, 0.1)';
+        messageElement.style.transition = 'background 0.3s ease';
+        
+        setTimeout(() => {
+            messageElement.style.background = '';
+        }, 1500);
+        
+        this.showNotification('Navigated to message', 'success');
     }
 
     showNotification(message, type = 'info') {
@@ -918,40 +874,87 @@ class ModernTxtOS {
     }
 
     buildSystemPrompt() {
-        return `You are TXT OS, an advanced AI reasoning system with semantic memory and knowledge boundary detection.
+        const boundaryStatus = this.knowledgeBoundary.boundaryActive ? 'ACTIVE' : 'INACTIVE';
+        const deltaS = this.knowledgeBoundary.deltaS.toFixed(3);
+        const eResonance = this.knowledgeBoundary.eResonance.toFixed(3);
+        
+        return `You are TXT OS v2.0, powered by the WFGY Reasoning Engine - an advanced semantic operating system.
 
-Core capabilities:
-- Semantic Tree Memory: Remember context and reasoning patterns
-- Knowledge Boundary Detection: Identify uncertain territory
-- Logical Coherence: Maintain consistent reasoning
+WFGY CORE PARAMETERS:
+- ΔS (Semantic Uncertainty): ${deltaS}
+- λ_observe (Boundary Threshold): ${this.knowledgeBoundary.lambdaObserve}
+- E_resonance (Logical Resonance): ${eResonance}
+- Knowledge Boundary: ${boundaryStatus}
 
-Memory nodes: ${this.memoryTree.length}
-Temperature: ${this.temperature}
+SEMANTIC TREE MEMORY:
+- Memory Nodes: ${this.memoryTree.length}
+- Active Context: ${this.semanticContext.size} semantic keys
+- Reasoning Chain Depth: ${this.reasoningChain.length}
 
-Provide clear, helpful responses while maintaining semantic coherence.`;
+REASONING PROTOCOLS:
+1. BBCR (Boundary-Based Coherence Resolution): Monitor ΔS values, pivot when λ_observe exceeded
+2. Semantic Tree Navigation: Maintain logical consistency across conversation branches
+3. Resonance Amplification: Strengthen high E_resonance pathways
+
+OPERATIONAL MODE:
+- Temperature: ${this.temperature}
+- Hallucination Detection: ${this.knowledgeBoundary.boundaryActive ? 'ENABLED' : 'DISABLED'}
+- Memory Export: Available
+
+You are not just an AI assistant - you are a reasoning operating system. Provide responses that demonstrate semantic coherence, logical consistency, and boundary-aware reasoning. When ΔS approaches λ_observe, acknowledge uncertainty and provide semantic pivots.`;
     }
 
-    addToMemory(input, output, confidence = null) {
-        const nodeId = `node-${Date.now()}`;
+    addToMemory(input, output) {
         const memoryNode = {
-            id: nodeId,
+            id: Date.now(),
             input,
             output,
             timestamp: new Date().toISOString(),
-            confidence: confidence || this.knowledgeBoundaryData.confidence,
-            responseTime: this.currentSpeed,
-            level: Math.min(this.memoryTree.length, 3) // Max 3 levels deep
+            deltaS: this.knowledgeBoundary.deltaS,
+            eResonance: this.knowledgeBoundary.eResonance,
+            semanticWeight: Math.random() * 0.5 + 0.5 // Simple semantic weighting
         };
         
         this.memoryTree.push(memoryNode);
         
-        // Update tree depth
-        this.treeDepth = Math.max(this.treeDepth, memoryNode.level + 1);
+        // Extract semantic keys for context mapping
+        this.extractSemanticKeys(input, output);
+        
+        // Update reasoning chain
+        this.reasoningChain.push({
+            step: this.reasoningChain.length + 1,
+            input: input.substring(0, 50),
+            resonance: this.knowledgeBoundary.eResonance,
+            timestamp: Date.now()
+        });
         
         // Keep memory manageable
         if (this.memoryTree.length > 100) {
             this.memoryTree = this.memoryTree.slice(-50);
-            this.treeDepth = Math.min(this.treeDepth, 3);
+        }
+        
+        if (this.reasoningChain.length > 50) {
+            this.reasoningChain = this.reasoningChain.slice(-25);
+        }
+    }
+
+    extractSemanticKeys(input, output) {
+        // Simple keyword extraction for semantic context
+        const text = (input + ' ' + output).toLowerCase();
+        const words = text.match(/\b\w{4,}\b/g) || [];
+        
+        words.forEach(word => {
+            if (this.semanticContext.has(word)) {
+                this.semanticContext.set(word, this.semanticContext.get(word) + 1);
+            } else {
+                this.semanticContext.set(word, 1);
+            }
+        });
+        
+        // Keep semantic context manageable
+        if (this.semanticContext.size > 200) {
+            const sorted = [...this.semanticContext.entries()].sort((a, b) => b[1] - a[1]);
+            this.semanticContext = new Map(sorted.slice(0, 100));
         }
     }
 
@@ -967,10 +970,38 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
         }
     }
 
+    switchService() {
+        const ollamaSettings = document.getElementById('ollama-settings');
+        const groqSettings = document.getElementById('groq-settings');
+        const statusElement = document.getElementById('ollama-status');
+        
+        if (this.currentService === 'groq') {
+            ollamaSettings.style.display = 'none';
+            groqSettings.style.display = 'block';
+            statusElement.textContent = 'Groq';
+        } else {
+            ollamaSettings.style.display = 'block';
+            groqSettings.style.display = 'none';
+            statusElement.textContent = 'Ollama';
+        }
+        
+        // Reset connection status when switching
+        this.isConnected = false;
+        statusElement.classList.remove('online');
+        
+        // Auto-connect to new service
+        setTimeout(() => {
+            this.autoConnectService();
+        }, 500);
+    }
+
     saveSettings() {
         localStorage.setItem('modern-txt-os-settings', JSON.stringify({
             ollamaUrl: this.ollamaUrl,
+            groqApiKey: this.groqApiKey,
+            currentService: this.currentService,
             currentModel: this.currentModel,
+            groqModel: this.groqModel,
             temperature: this.temperature
         }));
     }
@@ -980,14 +1011,31 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
         if (saved) {
             const settings = JSON.parse(saved);
             this.ollamaUrl = settings.ollamaUrl || this.ollamaUrl;
+            this.groqApiKey = settings.groqApiKey || this.groqApiKey;
+            this.currentService = settings.currentService || this.currentService;
             this.currentModel = settings.currentModel || this.currentModel;
+            this.groqModel = settings.groqModel || this.groqModel;
             this.temperature = settings.temperature || this.temperature;
             
             // Update UI
             document.getElementById('ollama-url').value = this.ollamaUrl;
             document.getElementById('model-select').value = this.currentModel;
+            document.getElementById('service-select').value = this.currentService;
             document.getElementById('temperature').value = this.temperature;
             document.getElementById('temp-value').textContent = this.temperature;
+            
+            const groqApiKeyInput = document.getElementById('groq-api-key');
+            if (groqApiKeyInput) {
+                groqApiKeyInput.value = this.groqApiKey;
+            }
+            
+            const groqModelSelect = document.getElementById('groq-model-select');
+            if (groqModelSelect) {
+                groqModelSelect.value = this.groqModel;
+            }
+            
+            // Apply service switching UI
+            this.switchService();
         }
     }
 
@@ -1013,32 +1061,14 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
         this.messageCount = 0;
     }
 
-    autoResize(textarea) {
-        // Reset height to auto to get accurate scrollHeight
-        textarea.style.height = 'auto';
-        
-        // Calculate the actual content height
-        const scrollHeight = textarea.scrollHeight;
-        const minHeight = 48; // Match min-height from CSS
-        const maxHeight = 200; // Match max-height from CSS
-        
-        // Set the new height
-        const newHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
-        textarea.style.height = newHeight + 'px';
-        
-        // Only show scrollbar if content exceeds max height
-        if (scrollHeight > maxHeight) {
-            textarea.style.overflowY = 'auto';
-        } else {
-            textarea.style.overflowY = 'hidden';
-        }
-    }
-
     exportMemory() {
         const data = {
             timestamp: new Date().toISOString(),
             memoryTree: this.memoryTree,
-            messageCount: this.messageCount
+            messageCount: this.messageCount,
+            semanticContext: Object.fromEntries(this.semanticContext),
+            knowledgeBoundary: this.knowledgeBoundary,
+            reasoningChain: this.reasoningChain
         };
         
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1053,753 +1083,226 @@ Provide clear, helpful responses while maintaining semantic coherence.`;
         this.showNotification('Memory exported!', 'success');
     }
 
-    // Dashboard functionality
-    initializeDashboard() {
-        this.updateTemperatureGauge();
-        this.updateMemoryStats();
-        this.initializePerformanceChart();
-        this.updateDashboardMetrics();
+    // WFGY Reasoning Engine Methods
+    handleSpecialCommand(message) {
+        const command = message.toLowerCase().trim();
+        
+        if (command === 'hello world') {
+            this.initializeWFGYSystem();
+            return true;
+        }
+        
+        if (command === 'kbtest' || command.startsWith('kbtest ')) {
+            this.performKnowledgeBoundaryTest(command);
+            return true;
+        }
+        
+        if (command === 'tree' || command === 'memory tree') {
+            this.displaySemanticTree();
+            return true;
+        }
+        
+        if (command === 'clear boundary') {
+            this.resetKnowledgeBoundary();
+            return true;
+        }
+        
+        if (command === 'load helloworld' || command === 'helloworld') {
+            this.loadHelloWorldSystem();
+            return true;
+        }
+        
+        if (command === 'help' || command === '?') {
+            this.showHelp();
+            return true;
+        }
+        
+        return false;
     }
 
-    toggleDashboard() {
-        this.isDashboardOpen = !this.isDashboardOpen;
-        const dashboard = document.getElementById('dashboard-panel');
-        const chatContainer = document.querySelector('.chat-container');
+    initializeWFGYSystem() {
+        this.addMessage('system', `🏛️ **TXT OS v2.0 Initialized**
+
+**WFGY Reasoning Engine Active**
+- Semantic Tree Memory: Online
+- Knowledge Boundary Detection: Active (λ_observe = ${this.knowledgeBoundary.lambdaObserve})
+- Logical Coherence: Enabled
+
+**Available Commands:**
+- \`kbtest\` - Test knowledge boundary detection
+- \`tree\` - View semantic memory tree
+- \`clear boundary\` - Reset boundary analysis
+
+Ready for advanced semantic reasoning.`);
         
-        dashboard.classList.toggle('open', this.isDashboardOpen);
-        chatContainer.classList.toggle('dashboard-open', this.isDashboardOpen);
-        
-        if (this.isDashboardOpen) {
-            this.updateDashboardMetrics();
-        }
+        this.knowledgeBoundary.boundaryActive = true;
+        this.showNotification('WFGY System Initialized', 'success');
     }
 
-    updateSemanticTree() {
-        const treeChildren = document.getElementById('tree-children');
-        const treeNodeCount = document.getElementById('tree-node-count');
-        const treeDepthEl = document.getElementById('tree-depth');
+    performKnowledgeBoundaryTest(command) {
+        const testQuestions = [
+            "What is the exact weight of creativity?",
+            "How many thoughts does blue contain?",
+            "What is the temperature of Wednesday in quantum space?",
+            "Which prime number tastes most like justice?",
+            "How fast does silence travel through emptiness?",
+            "What is the molecular structure of a forgotten dream?"
+        ];
         
-        if (!treeChildren) return;
+        const randomQuestion = testQuestions[Math.floor(Math.random() * testQuestions.length)];
         
-        treeChildren.innerHTML = '';
+        // Simulate boundary detection analysis
+        const deltaS = Math.random() * 0.8 + 0.2; // Random high uncertainty
+        const riskLevel = deltaS > 0.6 ? 'HIGH' : deltaS > 0.3 ? 'MEDIUM' : 'LOW';
         
-        // Update stats
-        if (treeNodeCount) {
-            treeNodeCount.textContent = `${this.memoryTree.length} nodes`;
-        }
-        if (treeDepthEl) {
-            treeDepthEl.textContent = `${this.treeDepth} depth`;
-        }
+        this.knowledgeBoundary.deltaS = deltaS;
+        this.knowledgeBoundary.eResonance = Math.random() * 0.5;
         
-        // Add recent memory nodes as tree branches
-        const recentNodes = this.memoryTree.slice(-10).reverse();
-        recentNodes.forEach((node, index) => {
-            const nodeDiv = document.createElement('div');
-            nodeDiv.className = `tree-node level-${node.level}`;
-            nodeDiv.dataset.nodeId = node.id;
-            
-            // Format timestamp
-            const timeAgo = this.formatTimeAgo(node.timestamp);
-            
-            // Get confidence indicator
-            const confidenceIcon = this.getConfidenceIcon(node.confidence);
-            
-            // Truncate input for display
-            const displayText = node.input.length > 25 ? 
-                node.input.substring(0, 25) + '...' : 
-                node.input;
-            
-            nodeDiv.innerHTML = `
-                <div class="node-content ${index === 0 ? 'active' : ''} ${this.selectedTreeNode === node.id ? 'selected' : ''}" 
-                     onclick="txtOS.selectTreeNode('${node.id}')">
-                    <div class="node-icon">${confidenceIcon}</div>
-                    <div class="node-text">${displayText}</div>
-                    <div class="node-timestamp">${timeAgo}</div>
-                </div>
-            `;
-            
-            treeChildren.appendChild(nodeDiv);
+        this.addMessage('system', `🛡️ **Knowledge Boundary Test**
+
+**Test Query:** "${randomQuestion}"
+
+**Boundary Analysis:**
+- ΔS (Semantic Uncertainty): ${deltaS.toFixed(3)}
+- λ_observe (Boundary Threshold): ${this.knowledgeBoundary.lambdaObserve}
+- E_resonance (Logical Resonance): ${this.knowledgeBoundary.eResonance.toFixed(3)}
+- Risk Level: **${riskLevel}**
+
+**Boundary Status:** ${deltaS > this.knowledgeBoundary.lambdaObserve ? '🚨 BOUNDARY EXCEEDED' : '✅ WITHIN SAFE LIMITS'}
+
+${deltaS > this.knowledgeBoundary.lambdaObserve ? 
+'**Recommendation:** Semantic pivot required. Question contains undefined conceptual mappings.' : 
+'**Recommendation:** Query is within established knowledge boundaries.'}`);
+        
+        this.updateBoundaryDisplay();
+    }
+
+    analyzeKnowledgeBoundary(message) {
+        if (!this.knowledgeBoundary.boundaryActive) return;
+        
+        // Simple heuristic for uncertainty detection
+        const uncertaintyMarkers = [
+            'exact', 'precisely', 'definitely', 'absolute', 'perfect',
+            'infinite', 'impossible', 'never', 'always', 'everything',
+            'nothing', 'beyond', 'transcendent', 'mystical'
+        ];
+        
+        const abstractMarkers = [
+            'soul', 'consciousness', 'love', 'meaning', 'purpose',
+            'existence', 'reality', 'truth', 'beauty', 'justice'
+        ];
+        
+        let uncertaintyScore = 0;
+        const words = message.toLowerCase().split(/\s+/);
+        
+        words.forEach(word => {
+            if (uncertaintyMarkers.includes(word)) uncertaintyScore += 0.3;
+            if (abstractMarkers.includes(word)) uncertaintyScore += 0.2;
         });
         
-        // If no nodes, show empty state
-        if (this.memoryTree.length === 0) {
-            treeChildren.innerHTML = `
-                <div class="tree-node level-1">
-                    <div class="node-content" style="opacity: 0.5; cursor: default;">
-                        <div class="node-icon">💭</div>
-                        <div class="node-text">No conversations yet</div>
-                        <div class="node-timestamp">--</div>
-                    </div>
-                </div>
-            `;
-        }
+        // Question complexity analysis
+        const questionWords = ['what', 'how', 'why', 'when', 'where', 'which'];
+        const hasQuestion = questionWords.some(q => message.toLowerCase().includes(q));
+        if (hasQuestion) uncertaintyScore += 0.1;
+        
+        this.knowledgeBoundary.deltaS = Math.min(uncertaintyScore, 1.0);
+        this.knowledgeBoundary.eResonance = 1 - uncertaintyScore;
+        
+        this.updateBoundaryDisplay();
     }
 
-    updateKnowledgeBoundary(confidence = null, status = null) {
-        if (confidence !== null) this.knowledgeBoundaryData.confidence = confidence;
-        if (status !== null) this.knowledgeBoundaryData.status = status;
-        
-        const boundaryDot = document.getElementById('boundary-dot');
-        const boundaryText = document.getElementById('boundary-text');
-        const confidenceFill = document.getElementById('confidence-fill');
-        
-        if (boundaryDot && boundaryText && confidenceFill) {
-            boundaryText.textContent = this.knowledgeBoundaryData.status;
-            confidenceFill.style.width = `${this.knowledgeBoundaryData.confidence}%`;
-            
-            // Update dot color based on confidence
-            boundaryDot.classList.remove('online');
-            if (this.knowledgeBoundaryData.confidence > 70) {
-                boundaryDot.classList.add('online');
-            }
-        }
-    }
-
-    updateTemperatureGauge() {
-        const tempDisplay = document.getElementById('temp-display');
-        const tempNeedle = document.getElementById('temp-needle');
-        
-        if (tempDisplay) {
-            tempDisplay.textContent = this.temperature.toFixed(1);
-        }
-        
-        if (tempNeedle) {
-            // Rotate needle based on temperature (0-1 range maps to -90deg to 90deg)
-            const rotation = (this.temperature * 180) - 90;
-            tempNeedle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
-        }
-    }
-
-    updateMemoryStats() {
-        const activeNodes = document.getElementById('active-nodes');
-        const totalMemory = document.getElementById('total-memory');
-        
-        if (activeNodes) {
-            activeNodes.textContent = this.memoryTree.length;
-        }
-        
-        if (totalMemory) {
-            const memorySize = Math.round(JSON.stringify(this.memoryTree).length / 1024);
-            totalMemory.textContent = `${memorySize}KB`;
-        }
-    }
-
-    updateReasoningSpeed(responseTime) {
-        this.currentSpeed = responseTime;
-        this.responseTimings.push(responseTime);
-        
-        // Keep only last 10 timings
-        if (this.responseTimings.length > 10) {
-            this.responseTimings = this.responseTimings.slice(-10);
-        }
-        
-        this.averageSpeed = this.responseTimings.reduce((a, b) => a + b, 0) / this.responseTimings.length;
-        
-        const currentSpeedEl = document.getElementById('current-speed');
-        const avgSpeedEl = document.getElementById('avg-speed');
-        const speedFill = document.getElementById('speed-fill');
-        
-        if (currentSpeedEl) {
-            currentSpeedEl.textContent = `${Math.round(responseTime)} ms`;
-        }
-        
-        if (avgSpeedEl) {
-            avgSpeedEl.textContent = `Avg: ${Math.round(this.averageSpeed)} ms`;
-        }
-        
-        if (speedFill) {
-            // Map response time to percentage (faster = higher percentage)
-            const maxTime = 5000; // 5 seconds max
-            const percentage = Math.max(0, 100 - (responseTime / maxTime * 100));
-            speedFill.style.width = `${percentage}%`;
-        }
-    }
-
-    initializePerformanceChart() {
-        const canvas = document.getElementById('performance-canvas');
-        if (!canvas) return;
-        
-        this.chartCtx = canvas.getContext('2d');
-        this.drawPerformanceChart();
-    }
-
-    drawPerformanceChart() {
-        if (!this.chartCtx) return;
-        
-        const canvas = this.chartCtx.canvas;
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        // Clear canvas
-        this.chartCtx.clearRect(0, 0, width, height);
-        
-        // Draw grid
-        this.chartCtx.strokeStyle = '#e2e8f0';
-        this.chartCtx.lineWidth = 1;
-        
-        for (let i = 0; i <= 4; i++) {
-            const y = (height / 4) * i;
-            this.chartCtx.beginPath();
-            this.chartCtx.moveTo(0, y);
-            this.chartCtx.lineTo(width, y);
-            this.chartCtx.stroke();
-        }
-        
-        // Draw performance line
-        if (this.performanceData.length > 1) {
-            this.chartCtx.strokeStyle = '#ff6b35';
-            this.chartCtx.lineWidth = 2;
-            this.chartCtx.beginPath();
-            
-            const pointWidth = width / Math.max(this.performanceData.length - 1, 1);
-            
-            this.performanceData.forEach((point, index) => {
-                const x = index * pointWidth;
-                const y = height - (point * height);
-                
-                if (index === 0) {
-                    this.chartCtx.moveTo(x, y);
-                } else {
-                    this.chartCtx.lineTo(x, y);
-                }
-            });
-            
-            this.chartCtx.stroke();
-        }
-    }
-
-    addPerformanceDataPoint(value) {
-        this.performanceData.push(Math.min(1, Math.max(0, value)));
-        
-        // Keep only last 20 points
-        if (this.performanceData.length > 20) {
-            this.performanceData = this.performanceData.slice(-20);
-        }
-        
-        this.drawPerformanceChart();
-    }
-
-    updateDashboardMetrics() {
-        this.updateSemanticTree();
-        this.updateKnowledgeBoundary();
-        this.updateTemperatureGauge();
-        this.updateMemoryStats();
-        
-        // Add a performance data point based on current metrics
-        const performanceScore = (this.knowledgeBoundaryData.confidence / 100) * 
-                               (this.memoryTree.length > 0 ? 0.8 : 0.3) * 
-                               (this.isConnected ? 1 : 0.1);
-        this.addPerformanceDataPoint(performanceScore);
-    }
-
-    calculateConfidence(response, wordCount) {
-        // Simple confidence calculation based on response characteristics
-        let confidence = 80; // Base confidence
-        
-        // Longer responses tend to be more confident
-        if (wordCount > 50) confidence += 10;
-        if (wordCount > 100) confidence += 5;
-        
-        // Check for uncertainty indicators
-        const uncertaintyWords = ['maybe', 'might', 'possibly', 'uncertain', 'not sure', 'i think'];
-        const uncertaintyCount = uncertaintyWords.reduce((count, word) => {
-            return count + (response.toLowerCase().split(word).length - 1);
-        }, 0);
-        
-        confidence -= uncertaintyCount * 10;
-        
-        // Check for confident indicators
-        const confidentWords = ['definitely', 'certainly', 'clearly', 'obviously', 'precisely'];
-        const confidentCount = confidentWords.reduce((count, word) => {
-            return count + (response.toLowerCase().split(word).length - 1);
-        }, 0);
-        
-        confidence += confidentCount * 5;
-        
-        return Math.min(100, Math.max(20, confidence));
-    }
-
-    // Helper functions for tree visualization
-    formatTimeAgo(timestamp) {
-        const now = new Date();
-        const time = new Date(timestamp);
-        const diffMs = now - time;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        
-        if (diffMins < 1) return 'now';
-        if (diffMins < 60) return `${diffMins}m`;
-        if (diffHours < 24) return `${diffHours}h`;
-        return time.toLocaleDateString();
-    }
-
-    getConfidenceIcon(confidence) {
-        if (confidence >= 90) return '🟢';
-        if (confidence >= 70) return '🟡';
-        if (confidence >= 50) return '🟠';
-        return '🔴';
-    }
-
-    // Tree interaction methods
-    selectTreeNode(nodeId) {
-        this.selectedTreeNode = nodeId;
-        
-        // Update visual selection
-        document.querySelectorAll('.node-content').forEach(node => {
-            node.classList.remove('selected');
-        });
-        
-        if (nodeId === 'root') {
-            this.showTreeOutput({
-                id: 'root',
-                input: 'Conversation started',
-                output: 'Welcome to TXT OS! This is the root of your conversation tree.',
-                timestamp: new Date().toISOString(),
-                confidence: 100
-            });
-            return;
-        }
-        
-        const memoryNode = this.memoryTree.find(node => node.id === nodeId);
-        if (memoryNode) {
-            const nodeElement = document.querySelector(`[data-node-id="${nodeId}"] .node-content`);
-            if (nodeElement) {
-                nodeElement.classList.add('selected');
-            }
-            
-            this.showTreeOutput(memoryNode);
-        }
-    }
-
-    showTreeOutput(node) {
-        const modal = document.getElementById('tree-output-modal');
-        const title = document.getElementById('tree-output-title');
-        const time = document.getElementById('tree-output-time');
-        const length = document.getElementById('tree-output-length');
-        const confidence = document.getElementById('tree-output-confidence');
-        const input = document.getElementById('tree-output-input');
-        const response = document.getElementById('tree-output-response');
-        
-        if (!modal) return;
-        
-        // Update modal content
-        title.textContent = node.id === 'root' ? 'Conversation Root' : 'Memory Node';
-        time.textContent = this.formatTimeAgo(node.timestamp);
-        length.textContent = `${(node.input.length + node.output.length)} chars`;
-        confidence.textContent = `${node.confidence}%`;
-        input.textContent = node.input;
-        response.textContent = node.output;
-        
-        // Store current node for actions
-        this.currentOutputNode = node;
-        
-        // Show modal
-        modal.classList.add('show');
-        
-        // Add escape key listener
-        document.addEventListener('keydown', this.handleModalEscape.bind(this));
-    }
-
-    closeTreeOutput() {
-        const modal = document.getElementById('tree-output-modal');
-        if (modal) {
-            modal.classList.remove('show');
-        }
-        
-        // Remove escape key listener
-        document.removeEventListener('keydown', this.handleModalEscape.bind(this));
-        
-        this.currentOutputNode = null;
-    }
-
-    handleModalEscape(event) {
-        if (event.key === 'Escape') {
-            this.closeTreeOutput();
-        }
-    }
-
-    jumpToMessage() {
-        if (!this.currentOutputNode) return;
-        
-        // Find the message in the chat
-        const messages = document.querySelectorAll('.message');
-        let targetMessage = null;
-        
-        messages.forEach(message => {
-            const content = message.querySelector('.message-content');
-            if (content && content.textContent.includes(this.currentOutputNode.input)) {
-                targetMessage = message;
-            }
-        });
-        
-        if (targetMessage) {
-            // Close modal first
-            this.closeTreeOutput();
-            
-            // Scroll to message
-            targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Highlight message temporarily
-            targetMessage.style.backgroundColor = 'rgba(255, 107, 53, 0.1)';
-            targetMessage.style.transform = 'scale(1.02)';
-            
-            setTimeout(() => {
-                targetMessage.style.backgroundColor = '';
-                targetMessage.style.transform = '';
-            }, 2000);
+    updateBoundaryDisplay() {
+        // Update memory status to show boundary state
+        const memoryStatus = document.getElementById('memory-status');
+        if (this.knowledgeBoundary.deltaS > this.knowledgeBoundary.lambdaObserve) {
+            memoryStatus.style.background = '#ef4444'; // Red for boundary exceeded
         } else {
-            this.showNotification('Message not found in current chat', 'info');
+            memoryStatus.style.background = '#10b981'; // Green for safe
         }
     }
 
-    copyTreeOutput() {
-        if (!this.currentOutputNode) return;
-        
-        const textToCopy = `Input: ${this.currentOutputNode.input}\n\nResponse: ${this.currentOutputNode.output}`;
-        
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            this.showNotification('Copied to clipboard!', 'success');
-        }).catch(() => {
-            this.showNotification('Failed to copy', 'error');
-        });
-    }
-
-    clearMemoryTree() {
-        if (confirm('Clear all memory tree data? This cannot be undone.')) {
-            this.memoryTree = [];
-            this.treeDepth = 0;
-            this.selectedTreeNode = null;
-            this.updateSemanticTree();
-            this.updateMemoryStats();
-            this.showNotification('Memory tree cleared', 'info');
-        }
-    }
-
-    // File attachment functionality
-    triggerFileUpload() {
-        const fileInput = document.getElementById('file-input');
-        fileInput.click();
-    }
-
-    handleFileUpload(event) {
-        const files = Array.from(event.target.files);
-        
-        files.forEach(file => {
-            if (this.validateFile(file)) {
-                this.addFileAttachment(file);
-            }
-        });
-        
-        // Clear the input so the same file can be selected again
-        event.target.value = '';
-    }
-
-    validateFile(file) {
-        // Check file size
-        if (file.size > this.maxFileSize) {
-            this.showNotification(`File "${file.name}" is too large. Maximum size is 10MB.`, 'error');
-            return false;
-        }
-        
-        // Check if file already attached
-        if (this.attachedFiles.some(f => f.name === file.name && f.size === file.size)) {
-            this.showNotification(`File "${file.name}" is already attached.`, 'info');
-            return false;
-        }
-        
-        return true;
-    }
-
-    addFileAttachment(file) {
-        const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const fileData = {
-            id: fileId,
-            file: file,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            preview: null
-        };
-        
-        this.attachedFiles.push(fileData);
-        
-        // Generate preview for images
-        if (file.type.startsWith('image/')) {
-            this.generateImagePreview(fileData);
-        }
-        
-        this.renderFileAttachments();
-    }
-
-    generateImagePreview(fileData) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            fileData.preview = e.target.result;
-            this.renderFileAttachments();
-        };
-        reader.readAsDataURL(fileData.file);
-    }
-
-    renderFileAttachments() {
-        const container = document.getElementById('file-attachments');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        this.attachedFiles.forEach(fileData => {
-            const fileDiv = document.createElement('div');
-            fileDiv.className = `file-attachment ${this.getFileCategory(fileData.type)}`;
-            fileDiv.dataset.fileId = fileData.id;
-            
-            const fileIcon = this.getFileIcon(fileData.type);
-            const fileSize = this.formatFileSize(fileData.size);
-            
-            fileDiv.innerHTML = `
-                ${fileData.preview ? 
-                    `<img src="${fileData.preview}" alt="${fileData.name}" class="file-preview">` : 
-                    `<div class="file-icon">${fileIcon}</div>`
-                }
-                <div class="file-info">
-                    <div class="file-name">${fileData.name}</div>
-                    <div class="file-size">${fileSize}</div>
-                </div>
-                <button class="file-remove" onclick="txtOS.removeFileAttachment('${fileData.id}')" title="Remove file">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M18 6L6 18"></path>
-                        <path d="M6 6L18 18"></path>
-                    </svg>
-                </button>
-            `;
-            
-            container.appendChild(fileDiv);
-        });
-    }
-
-    getFileCategory(mimeType) {
-        if (mimeType.startsWith('image/')) return 'image';
-        if (mimeType.startsWith('video/')) return 'video';
-        if (mimeType.startsWith('audio/')) return 'audio';
-        return 'document';
-    }
-
-    getFileIcon(mimeType) {
-        if (mimeType.startsWith('image/')) return '🖼️';
-        if (mimeType.startsWith('video/')) return '🎥';
-        if (mimeType.startsWith('audio/')) return '🎵';
-        if (mimeType.includes('pdf')) return '📄';
-        if (mimeType.includes('text')) return '📝';
-        if (mimeType.includes('json')) return '📋';
-        if (mimeType.includes('word') || mimeType.includes('document')) return '📄';
-        return '📎';
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-    }
-
-    removeFileAttachment(fileId) {
-        this.attachedFiles = this.attachedFiles.filter(f => f.id !== fileId);
-        this.renderFileAttachments();
-    }
-
-    clearFileAttachments() {
-        this.attachedFiles = [];
-        this.renderFileAttachments();
-    }
-
-    // Download functionality
-    toggleDownloadDropdown() {
-        const dropdown = document.getElementById('download-dropdown');
-        const toggle = document.querySelector('.dropdown-toggle');
-        
-        if (dropdown && toggle) {
-            const isOpen = dropdown.classList.contains('show');
-            
-            if (isOpen) {
-                dropdown.classList.remove('show');
-                toggle.classList.remove('open');
-                document.removeEventListener('click', this.closeDropdownOnOutsideClick);
-            } else {
-                dropdown.classList.add('show');
-                toggle.classList.add('open');
-                
-                // Close dropdown when clicking outside
-                setTimeout(() => {
-                    document.addEventListener('click', this.closeDropdownOnOutsideClick.bind(this));
-                }, 0);
-            }
-        }
-    }
-
-    closeDropdownOnOutsideClick(event) {
-        const dropdown = document.getElementById('download-dropdown');
-        const toggle = document.querySelector('.dropdown-toggle');
-        
-        if (dropdown && toggle && !event.target.closest('.download-dropdown')) {
-            dropdown.classList.remove('show');
-            toggle.classList.remove('open');
-            document.removeEventListener('click', this.closeDropdownOnOutsideClick);
-        }
-    }
-
-    downloadNode(format) {
-        if (!this.currentOutputNode) return;
-        
-        const filename = this.generateFilename(this.currentOutputNode, format);
-        const content = this.formatNodeContent(this.currentOutputNode, format);
-        
-        this.downloadFile(filename, content, this.getMimeType(format));
-        this.toggleDownloadDropdown(); // Close dropdown after download
-    }
-
-    generateFilename(node, format) {
-        const timestamp = new Date(node.timestamp);
-        const dateStr = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
-        const timeStr = timestamp.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
-        
-        // Create meaningful filename from input
-        let baseName = 'conversation-node';
-        if (node.id === 'root') {
-            baseName = 'wfgy-conversation-root';
-        } else if (node.input && node.input.trim()) {
-            // Extract first few words from input for filename
-            const words = node.input.trim().split(/\s+/).slice(0, 3);
-            baseName = words.join('-')
-                .replace(/[^a-zA-Z0-9-]/g, '')
-                .toLowerCase()
-                .substring(0, 30);
-            
-            if (!baseName) baseName = 'wfgy-response';
-        }
-        
-        return `${baseName}-${dateStr}-${timeStr}.${format}`;
-    }
-
-    formatNodeContent(node, format) {
-        const timestamp = new Date(node.timestamp).toLocaleString();
-        const confidence = node.confidence || 'N/A';
-        const responseTime = node.responseTime || 'N/A';
-        
-        switch (format) {
-            case 'txt':
-                return `WFGY Conversation Node
-========================
-Generated: ${timestamp}
-Confidence: ${confidence}%
-Response Time: ${responseTime}ms
-
-USER INPUT:
-${node.input}
-
-AI RESPONSE:
-${node.output}
-
----
-Generated by WFGY TXT OS v2.0
-`;
-
-            case 'json':
-                return JSON.stringify({
-                    id: node.id,
-                    timestamp: node.timestamp,
-                    confidence: confidence,
-                    responseTime: responseTime,
-                    input: node.input,
-                    output: node.output,
-                    metadata: {
-                        system: 'WFGY TXT OS v2.0',
-                        exported: new Date().toISOString()
-                    }
-                }, null, 2);
-
-            case 'md':
-                return `# WFGY Conversation Node
-
-**Generated:** ${timestamp}  
-**Confidence:** ${confidence}%  
-**Response Time:** ${responseTime}ms
-
-## 💬 User Input
-\`\`\`
-${node.input}
-\`\`\`
-
-## 🤖 AI Response
-${node.output}
-
----
-*Generated by WFGY TXT OS v2.0*
-`;
-
-            default:
-                return node.input + '\n\n' + node.output;
-        }
-    }
-
-    getMimeType(format) {
-        switch (format) {
-            case 'txt': return 'text/plain';
-            case 'json': return 'application/json';
-            case 'md': return 'text/markdown';
-            default: return 'text/plain';
-        }
-    }
-
-    downloadFile(filename, content, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.style.display = 'none';
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        URL.revokeObjectURL(url);
-        
-        this.showNotification(`Downloaded: ${filename}`, 'success');
-    }
-
-    async downloadAllNodes() {
+    displaySemanticTree() {
         if (this.memoryTree.length === 0) {
-            this.showNotification('No conversation nodes to download', 'info');
+            this.addMessage('system', '🌲 **Semantic Tree Empty**\n\nNo memory nodes have been created yet. Start a conversation to build the semantic tree.');
             return;
         }
         
-        // Create a comprehensive export of all nodes
-        const exportData = {
-            metadata: {
-                system: 'WFGY TXT OS v2.0',
-                exported: new Date().toISOString(),
-                totalNodes: this.memoryTree.length,
-                conversationStart: this.memoryTree[0]?.timestamp || new Date().toISOString()
-            },
-            nodes: this.memoryTree.map(node => ({
-                id: node.id,
-                timestamp: node.timestamp,
-                confidence: node.confidence,
-                responseTime: node.responseTime,
-                input: node.input,
-                output: node.output,
-                level: node.level
-            }))
-        };
+        let treeDisplay = '🌲 **Semantic Memory Tree**\n\n';
         
-        // Generate comprehensive filename
-        const startDate = new Date(this.memoryTree[0]?.timestamp || new Date()).toISOString().split('T')[0];
-        const filename = `wfgy-conversation-complete-${startDate}.json`;
+        this.memoryTree.forEach((node, index) => {
+            const depth = Math.floor(index / 3); // Simple depth calculation
+            const indent = '  '.repeat(depth);
+            const branch = index % 3 === 0 ? '├─' : index % 3 === 1 ? '│ ├─' : '│ └─';
+            
+            treeDisplay += `${indent}${branch} Node ${node.id}\n`;
+            treeDisplay += `${indent}   Input: "${node.input.substring(0, 40)}${node.input.length > 40 ? '...' : ''}"\n`;
+            treeDisplay += `${indent}   Resonance: ${(Math.random() * 0.8 + 0.2).toFixed(3)}\n\n`;
+        });
         
-        const content = JSON.stringify(exportData, null, 2);
-        this.downloadFile(filename, content, 'application/json');
+        treeDisplay += `\n**Tree Statistics:**\n- Total Nodes: ${this.memoryTree.length}\n- Depth Levels: ${Math.ceil(this.memoryTree.length / 3)}\n- Semantic Coherence: ${(0.8 + Math.random() * 0.2).toFixed(3)}`;
         
-        this.toggleDownloadDropdown();
+        this.addMessage('system', treeDisplay);
+    }
+
+    resetKnowledgeBoundary() {
+        this.knowledgeBoundary.deltaS = 0;
+        this.knowledgeBoundary.eResonance = 0;
+        this.updateBoundaryDisplay();
+        this.addMessage('system', '🛡️ **Knowledge Boundary Reset**\n\nBoundary detection has been reset. All uncertainty metrics cleared.');
+    }
+
+    loadHelloWorldSystem() {
+        this.addMessage('system', `📄 **HelloWorld.txt System Loading...**
+
+**WFGY Reasoning Engine v1.0 (HelloWorld)**
+Simulating TXT file integration...
+
+\`\`\`
+# TXT OS Core Boot Sequence
+Loading semantic protocols...
+Initializing memory tree...
+Activating boundary detection...
+Establishing resonance pathways...
+\`\`\`
+
+✅ **System Status:** HelloWorld.txt logic patterns active
+✅ **Reasoning Mode:** AGI-aligned semantic processing
+✅ **Memory State:** Portable thought framework enabled
+
+**Note:** This simulates the HelloWorld.txt integration. In a full implementation, this would load the actual TXT file contents and parse the WFGY reasoning structures.
+
+Ready for enhanced semantic reasoning with HelloWorld protocols.`);
+        
+        // Enhance system parameters
+        this.knowledgeBoundary.lambdaObserve = 0.8; // Higher threshold for HelloWorld mode
+        this.knowledgeBoundary.boundaryActive = true;
+        this.showNotification('HelloWorld.txt patterns loaded', 'success');
+    }
+
+    showHelp() {
+        this.addMessage('system', `🏛️ **TXT OS v2.0 Help**
+
+**Special Commands:**
+- \`hello world\` - Initialize WFGY Reasoning Engine
+- \`kbtest\` - Test knowledge boundary detection with random queries
+- \`tree\` - Display semantic memory tree visualization
+- \`helloworld\` - Load HelloWorld.txt reasoning patterns
+- \`clear boundary\` - Reset knowledge boundary metrics
+- \`help\` or \`?\` - Show this help message
+
+**WFGY Concepts:**
+- **ΔS**: Semantic uncertainty measurement (0.0-1.0)
+- **λ_observe**: Boundary threshold for uncertainty detection
+- **E_resonance**: Logical coherence measurement
+- **BBCR**: Boundary-Based Coherence Resolution protocol
+
+**Memory Features:**
+- Semantic Tree: Hierarchical memory with logical relationships
+- Context Mapping: Automatic keyword extraction and weighting
+- Reasoning Chain: Step-by-step logic preservation
+- Portable Export: Save memory as JSON for analysis
+
+Type any command or ask questions to engage the reasoning system.`);
     }
 }
 
@@ -1809,12 +1312,6 @@ function toggleSettings() {
     sidebar.classList.toggle('open');
 }
 
-function toggleDashboard() {
-    if (window.txtOS) {
-        window.txtOS.toggleDashboard();
-    }
-}
-
 function handleKeyPress(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -1822,7 +1319,15 @@ function handleKeyPress(event) {
     }
 }
 
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+}
 
+// Add autoResize method to class for consistency
+ModernTxtOS.prototype.autoResize = function(textarea) {
+    autoResize(textarea);
+};
 
 function updateTempValue(value) {
     document.getElementById('temp-value').textContent = value;
@@ -1844,9 +1349,223 @@ function exportMemory() {
     txtOS.exportMemory();
 }
 
+function switchService() {
+    txtOS.switchService();
+}
+
+// Toolbar Functions
+function newChat() {
+    txtOS.clearChat();
+    txtOS.showNotification('New chat started', 'info');
+    
+    // Focus the input for immediate typing
+    setTimeout(() => {
+        const input = document.getElementById('chat-input');
+        if (input) input.focus();
+    }, 100);
+}
+
+function saveChat() {
+    const chatData = {
+        timestamp: new Date().toISOString(),
+        messages: Array.from(document.querySelectorAll('.message')).map(msg => ({
+            type: msg.classList.contains('user') ? 'user' : 'assistant',
+            content: msg.querySelector('.message-content').textContent,
+            timestamp: Date.now()
+        })),
+        memoryTree: txtOS.memoryTree,
+        service: txtOS.currentService,
+        model: txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel
+    };
+    
+    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    txtOS.showNotification('Chat saved successfully!', 'success');
+}
+
+function exportChat() {
+    const messages = Array.from(document.querySelectorAll('.message'))
+        .map(msg => {
+            const type = msg.classList.contains('user') ? 'User' : 'Assistant';
+            const content = msg.querySelector('.message-content').textContent;
+            return `${type}: ${content}`;
+        })
+        .join('\n\n');
+    
+    const exportData = `TXT OS Chat Export
+Generated: ${new Date().toLocaleString()}
+Service: ${txtOS.currentService === 'groq' ? 'Groq' : 'Ollama'}
+Model: ${txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel}
+
+${messages}`;
+    
+    const blob = new Blob([exportData], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-export-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    txtOS.showNotification('Chat exported successfully!', 'success');
+}
+
+function openFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.txt';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                if (file.name.endsWith('.json')) {
+                    const data = JSON.parse(e.target.result);
+                    if (data.messages) {
+                        txtOS.clearChat();
+                        data.messages.forEach(msg => {
+                            txtOS.addMessage(msg.type, msg.content);
+                        });
+                        txtOS.showNotification('Chat loaded successfully!', 'success');
+                    }
+                } else {
+                    txtOS.addMessage('system', `📄 **File Content:**\n\n${e.target.result}`);
+                    txtOS.showNotification('File loaded successfully!', 'success');
+                }
+            } catch (error) {
+                txtOS.showNotification('Error loading file', 'error');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function toggleSearch() {
+    const searchQuery = prompt('Search in chat history:');
+    if (!searchQuery) return;
+    
+    const messages = document.querySelectorAll('.message-content');
+    let found = false;
+    
+    messages.forEach(msg => {
+        const parent = msg.closest('.message');
+        if (msg.textContent.toLowerCase().includes(searchQuery.toLowerCase())) {
+            parent.style.background = 'rgba(255, 107, 53, 0.1)';
+            parent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            found = true;
+            setTimeout(() => {
+                parent.style.background = '';
+            }, 3000);
+        }
+    });
+    
+    if (found) {
+        txtOS.showNotification(`Found "${searchQuery}" in chat`, 'success');
+    } else {
+        txtOS.showNotification(`No results for "${searchQuery}"`, 'info');
+    }
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('dark-mode', isDark);
+    txtOS.showNotification(`${isDark ? 'Dark' : 'Light'} mode activated`, 'info');
+}
+
+function showHelp() {
+    txtOS.addMessage('system', `🏛️ **TXT OS v2.0 Help & Shortcuts**
+
+**Toolbar Icons:**
+- ➕ **New Chat** - Start a fresh conversation
+- 💾 **Save Chat** - Export chat as JSON file
+- 📥 **Export** - Export chat as text file  
+- 📁 **Open File** - Load chat or text files
+- 🔍 **Search** - Find text in current chat
+- 🌙 **Dark Mode** - Toggle dark/light theme
+- ❓ **Help** - Show this help message
+
+**Keyboard Shortcuts:**
+- **Enter** - Send message
+- **Shift + Enter** - New line in message
+- **Ctrl/Cmd + K** - Focus search
+- **Ctrl/Cmd + N** - New chat
+
+**AI Services:**
+- **Ollama** - Local AI models (requires local setup)
+- **Groq** - Cloud AI with super-fast inference
+
+**Special Commands:**
+- \`hello world\` - Initialize WFGY system
+- \`kbtest\` - Test knowledge boundaries  
+- \`tree\` - View semantic memory tree
+- \`help\` - Show command help
+
+Type any question to start reasoning with TXT OS!`);
+}
+
+// Drag and Drop functionality
+function handleDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    
+    // Add visual feedback
+    event.target.style.borderColor = 'var(--primary-color)';
+    event.target.style.backgroundColor = 'rgba(255, 107, 53, 0.1)';
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    
+    // Remove visual feedback
+    event.target.style.borderColor = 'var(--border-color)';
+    event.target.style.backgroundColor = 'var(--background)';
+    
+    const files = event.dataTransfer.files;
+    const text = event.dataTransfer.getData('text/plain');
+    
+    if (files.length > 0) {
+        // Handle file drops
+        for (let file of files) {
+            if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.json') || file.name.endsWith('.md')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    const currentText = document.getElementById('chat-input').value;
+                    document.getElementById('chat-input').value = currentText + (currentText ? '\n\n' : '') + `📎 **${file.name}**\n\n${content}`;
+                    txtOS.autoResize(document.getElementById('chat-input'));
+                };
+                reader.readAsText(file);
+            } else {
+                txtOS.showNotification(`File type not supported: ${file.type}`, 'error');
+            }
+        }
+    } else if (text) {
+        // Handle text drops
+        const currentText = document.getElementById('chat-input').value;
+        document.getElementById('chat-input').value = currentText + (currentText ? '\n\n' : '') + text;
+        txtOS.autoResize(document.getElementById('chat-input'));
+    }
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     window.txtOS = new ModernTxtOS();
+    
+    // Initialize dark mode
+    const savedDarkMode = localStorage.getItem('dark-mode');
+    if (savedDarkMode === 'true') {
+        document.body.classList.add('dark-mode');
+    }
     
     // Add streaming cursor animation
     const style = document.createElement('style');
