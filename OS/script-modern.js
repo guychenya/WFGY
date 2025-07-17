@@ -48,6 +48,7 @@ class ModernTxtOS {
         // Delay auto-connect to ensure DOM is fully loaded
         setTimeout(() => {
             this.autoConnectService();
+            this.setupOllamaAutoStart();
         }, 1000);
     }
 
@@ -318,7 +319,15 @@ class ModernTxtOS {
                     this.showNotification('Please serve the app from a web server (not file://). Run: python -m http.server 8000', 'error');
                 }
             } else if (error.name === 'TypeError' || error.message.includes('CORS') || error.message.includes('Network')) {
-                if (!silent) this.showCORSError();
+                if (!silent) {
+                    // Check if Ollama is likely not running
+                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                        this.showNotification('Ollama server not detected. Please ensure Ollama app is running.', 'warning');
+                        this.showMacOllamaGuidance();
+                    } else {
+                        this.showCORSError();
+                    }
+                }
             } else if (!silent) {
                 this.showNotification(`Connection failed: ${error.message}`, 'error');
             }
@@ -339,8 +348,8 @@ class ModernTxtOS {
     }
 
     showCORSError() {
-        this.showNotification('CORS Error: Please start Ollama with CORS enabled', 'error');
-        this.showCORSInstructions();
+        this.showNotification('CORS Error: Attempting to start Ollama with CORS...', 'warning');
+        this.attemptOllamaAutoStart();
     }
 
     showCORSInstructions() {
@@ -368,6 +377,99 @@ This enables cross-origin requests and prevents network blocking.
         `;
         
         this.addMessage('system', instructions);
+    }
+
+    setupOllamaAutoStart() {
+        // Check if we're on macOS and show guidance
+        if (navigator.platform.toLowerCase().includes('mac')) {
+            this.showMacOllamaGuidance();
+        }
+    }
+
+    showMacOllamaGuidance() {
+        const guidance = `
+🍎 **MacOS Ollama Setup**
+
+✅ **Step 1:** Open the Ollama app from your Applications folder
+
+⚡ **Step 2:** This app will automatically start the Ollama server with CORS enabled
+
+🔄 **Step 3:** Click "Test Connection" to verify the setup
+
+**Note:** Make sure Ollama is running in your dock/menu bar before testing connection.
+        `;
+        
+        this.addMessage('system', guidance);
+    }
+
+    async attemptOllamaAutoStart() {
+        try {
+            this.showNotification('Attempting to start Ollama server with CORS...', 'info');
+            
+            // Try to start Ollama server with CORS via different methods
+            const startCommands = [
+                'OLLAMA_ORIGINS="*" ollama serve',
+                'ollama serve --cors-origins="*"',
+                'ollama serve'
+            ];
+            
+            for (const command of startCommands) {
+                try {
+                    await this.executeShellCommand(command);
+                    
+                    // Wait a moment for server to start
+                    await this.delay(3000);
+                    
+                    // Test connection
+                    const connected = await this.testConnection(true);
+                    if (connected) {
+                        this.showNotification('Ollama server started successfully with CORS!', 'success');
+                        return true;
+                    }
+                } catch (error) {
+                    console.log(`Failed to start with command: ${command}`, error);
+                    continue;
+                }
+            }
+            
+            // If all automatic attempts fail, show instructions
+            this.showNotification('Could not auto-start Ollama. Please start manually.', 'warning');
+            this.showCORSInstructions();
+            
+        } catch (error) {
+            console.error('Error attempting to auto-start Ollama:', error);
+            this.showNotification('Auto-start failed. Please start Ollama manually.', 'error');
+            this.showCORSInstructions();
+        }
+    }
+
+    async executeShellCommand(command) {
+        // Note: This is a placeholder for shell command execution
+        // In a real web application, this would need to be implemented
+        // through a backend service or native bridge
+        
+        if (window.electronAPI) {
+            // If running in Electron
+            return await window.electronAPI.executeCommand(command);
+        } else if (window.chrome && window.chrome.runtime) {
+            // If running as Chrome extension
+            return await new Promise((resolve, reject) => {
+                window.chrome.runtime.sendMessage({
+                    action: 'executeCommand',
+                    command: command
+                }, (response) => {
+                    if (response.success) {
+                        resolve(response.output);
+                    } else {
+                        reject(new Error(response.error));
+                    }
+                });
+            });
+        } else {
+            // For web version, we can't directly execute shell commands
+            // So we'll show instructions instead
+            throw new Error('Shell command execution not available in web version');
+        }
     }
 
     showGroqInstructions() {
