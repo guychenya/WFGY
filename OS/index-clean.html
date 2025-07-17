@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TXT OS - AI Chat Interface</title>
+    <link rel="stylesheet" href="styles-clean.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Simple Header with Essential Info Only -->
+        <header class="header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M9 9h6v6H9z"></path>
+                    </svg>
+                </div>
+                <h1>TXT OS</h1>
+            </div>
+            
+            <!-- Simple Status Indicator -->
+            <div class="connection-status" id="connection-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+            
+            <!-- Minimal Controls -->
+            <div class="header-controls">
+                <button class="control-btn" id="settings-toggle" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN FOCUS: Clean Chat Interface -->
+        <main class="chat-main">
+            <div class="chat-container">
+                <!-- Welcome Message for First Time Users -->
+                <div class="welcome-section" id="welcome-section">
+                    <div class="welcome-content">
+                        <h2>Welcome to TXT OS</h2>
+                        <p>Your AI reasoning companion is ready. Simply type a message below to begin.</p>
+                        <div class="quick-start">
+                            <span class="quick-tip">💡 Try asking: "How does AI reasoning work?" or type "help" for commands</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Messages Area -->
+                <div class="messages-area" id="messages-area">
+                    <!-- Messages appear here -->
+                </div>
+            </div>
+
+            <!-- PRIMARY ACTION: Chat Input -->
+            <div class="chat-input-section">
+                <div class="input-wrapper">
+                    <textarea 
+                        class="chat-input" 
+                        id="chat-input"
+                        placeholder="Ask me anything..."
+                        rows="1"
+                        aria-label="Type your message"
+                    ></textarea>
+                    <button class="send-btn" id="send-btn" aria-label="Send message">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13"></path>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- SECONDARY: Collapsible Settings Panel -->
+        <aside class="settings-panel" id="settings-panel">
+            <div class="panel-header">
+                <h3>Settings</h3>
+                <button class="close-btn" id="close-settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="panel-content">
+                <!-- Essential Settings Only -->
+                <div class="setting-group">
+                    <label class="setting-label">
+                        AI Service
+                        <select class="setting-select" id="service-select">
+                            <option value="ollama">Ollama (Local)</option>
+                            <option value="groq">Groq (Cloud)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="setting-group" id="groq-settings" style="display: none;">
+                    <label class="setting-label">
+                        API Key
+                        <input type="password" class="setting-input" id="groq-api-key" placeholder="Enter your Groq API key">
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">
+                        Response Style
+                        <select class="setting-select" id="temperature-preset">
+                            <option value="0.1">Focused & Precise</option>
+                            <option value="0.3" selected>Balanced</option>
+                            <option value="0.7">Creative & Varied</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="setting-actions">
+                    <button class="action-btn primary" id="test-connection">Test Connection</button>
+                </div>
+
+                <!-- Advanced Features - Collapsed by Default -->
+                <details class="advanced-section">
+                    <summary>Advanced Features</summary>
+                    <div class="advanced-content">
+                        <div class="feature-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="show-dashboard">
+                                <span class="toggle-slider"></span>
+                                Show Performance Dashboard
+                            </label>
+                        </div>
+                        <div class="feature-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="show-history">
+                                <span class="toggle-slider"></span>
+                                Show Chat History
+                            </label>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </aside>
+
+        <!-- Optional: Minimal Dashboard (Hidden by Default) -->
+        <div class="dashboard-overlay" id="dashboard-overlay" style="display: none;">
+            <div class="dashboard-content">
+                <div class="dashboard-header">
+                    <h3>Performance</h3>
+                    <button class="close-btn" id="close-dashboard">×</button>
+                </div>
+                <div class="metrics-simple">
+                    <div class="metric">
+                        <span class="metric-label">Status</span>
+                        <span class="metric-value" id="system-status">Active</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Response Mode</span>
+                        <span class="metric-value" id="response-mode">Balanced</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script-clean.js"></script>
+</body>
+</html>
