@@ -1743,9 +1743,37 @@ function handleDrop(event) {
     }
 }
 
+// Version Management
+const APP_VERSION = {
+    major: 2,
+    minor: 1,
+    patch: 0,
+    updated: new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+    })
+};
+
+function updateVersionDisplay() {
+    const versionText = document.querySelector('.version-text');
+    const versionDate = document.getElementById('version-date');
+    
+    if (versionText) {
+        versionText.textContent = `v${APP_VERSION.major}.${APP_VERSION.minor}`;
+    }
+    
+    if (versionDate) {
+        versionDate.textContent = APP_VERSION.updated;
+    }
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     window.txtOS = new ModernTxtOS();
+    
+    // Initialize version display
+    updateVersionDisplay();
     
     // Initialize dark mode
     const savedDarkMode = localStorage.getItem('dark-mode');
