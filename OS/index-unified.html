@@ -58,6 +58,15 @@
                     </svg>
                     <span>Settings</span>
                 </button>
+                
+                <button class="nav-item" data-pane="help">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9,9a3,3 0 1,1 6,0c0,2-3,3-3,3"></path>
+                        <path d="M12,17h.01"></path>
+                    </svg>
+                    <span>Help</span>
+                </button>
             </div>
             
             <div class="nav-footer">
@@ -76,6 +85,50 @@
 
         <!-- Main Content Area -->
         <main class="main-pane">
+            <!-- System Status Bar -->
+            <div class="system-status-bar">
+                <div class="status-item">
+                    <span class="status-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </span>
+                    <span class="status-label">Hallucination Detection</span>
+                    <span class="status-badge enabled" id="hallucination-status-bar">ENABLED</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </span>
+                    <span class="status-label">Knowledge Boundary</span>
+                    <span class="status-badge inactive" id="boundary-status-bar">INACTIVE</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7,10 12,15 17,10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </span>
+                    <span class="status-label">Memory Export</span>
+                    <span class="status-badge available" id="memory-export-status-bar">AVAILABLE</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 6v6l4 2"></path>
+                        </svg>
+                    </span>
+                    <span class="status-label">Service</span>
+                    <span class="status-badge" id="service-status-bar">OLLAMA</span>
+                </div>
+            </div>
+
             <!-- Chat Pane -->
             <div class="pane active" id="chat-pane">
                 <div class="pane-header">
@@ -133,8 +186,9 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                             <textarea 
                                 class="chat-input" 
                                 id="chat-input" 
-                                placeholder="Message TXT OS..."
+                                placeholder="Type your message..."
                                 rows="1"
+                                aria-label="Chat input"
                             ></textarea>
                             <button class="send-button" id="send-button" data-action="sendMessage">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -234,7 +288,15 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                                             </svg>
                                         </div>
                                         <div class="kpi-title">
-                                            <h4>ΔS Uncertainty</h4>
+                                            <h4>ΔS Uncertainty
+                                                <span class="tooltip-trigger" data-tooltip="Measures the uncertainty in semantic understanding - lower values indicate higher confidence">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <path d="M9,9a3,3 0 1,1 6,0c0,2-3,3-3,3"></path>
+                                                        <path d="M12,17h.01"></path>
+                                                    </svg>
+                                                </span>
+                                            </h4>
                                             <span class="kpi-subtitle">Semantic confidence</span>
                                         </div>
                                     </div>
@@ -257,7 +319,15 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                                             </svg>
                                         </div>
                                         <div class="kpi-title">
-                                            <h4>Temperature</h4>
+                                            <h4>Temperature
+                                                <span class="tooltip-trigger" data-tooltip="Controls creativity and randomness in AI responses - higher values produce more diverse outputs">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <path d="M9,9a3,3 0 1,1 6,0c0,2-3,3-3,3"></path>
+                                                        <path d="M12,17h.01"></path>
+                                                    </svg>
+                                                </span>
+                                            </h4>
                                             <span class="kpi-subtitle">Creativity level</span>
                                         </div>
                                     </div>
@@ -343,7 +413,15 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                                             </svg>
                                         </div>
                                         <div class="kpi-title">
-                                            <h4>BBCR Protocol</h4>
+                                            <h4>BBCR Protocol
+                                                <span class="tooltip-trigger" data-tooltip="Boundary-Based Coherence Resolution - monitors consistency in reasoning chains">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <path d="M9,9a3,3 0 1,1 6,0c0,2-3,3-3,3"></path>
+                                                        <path d="M12,17h.01"></path>
+                                                    </svg>
+                                                </span>
+                                            </h4>
                                             <span class="kpi-subtitle">Coherence resolution</span>
                                         </div>
                                     </div>
@@ -367,7 +445,15 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                                             </svg>
                                         </div>
                                         <div class="kpi-title">
-                                            <h4>Semantic Tree</h4>
+                                            <h4>Semantic Tree
+                                                <span class="tooltip-trigger" data-tooltip="Hierarchical memory structure for contextual understanding and knowledge navigation">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <path d="M9,9a3,3 0 1,1 6,0c0,2-3,3-3,3"></path>
+                                                        <path d="M12,17h.01"></path>
+                                                    </svg>
+                                                </span>
+                                            </h4>
                                             <span class="kpi-subtitle">Memory navigation</span>
                                         </div>
                                     </div>
@@ -466,12 +552,24 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 
                 <div class="settings-content">
                     <div class="settings-group">
-                        <h3>AI Service</h3>
+                        <div class="settings-group-header">
+                            <h3>AI Service Configuration</h3>
+                            <span class="settings-group-description">Choose and configure your AI service provider</span>
+                        </div>
                         <div class="setting-item">
-                            <label class="setting-label">Service</label>
-                            <select class="setting-input" id="service-select" onchange="switchService()">
-                                <option value="ollama">Ollama (Local)</option>
-                                <option value="groq">Groq (Cloud)</option>
+                            <label class="setting-label">
+                                Service Provider
+                                <span class="tooltip-trigger" data-tooltip="Select between local Ollama server or cloud-based Groq service">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M9,9a3,3 0 1,1 6,0c0,2-3,3-3,3"></path>
+                                        <path d="M12,17h.01"></path>
+                                    </svg>
+                                </span>
+                            </label>
+                            <select class="setting-input" id="service-select" aria-label="AI Service Provider">
+                                <option value="ollama">Ollama (Local Server)</option>
+                                <option value="groq">Groq (Cloud Service)</option>
                             </select>
                         </div>
                     </div>
@@ -521,13 +619,36 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                     </div>
 
                     <div class="settings-group">
-                        <h3>General Settings</h3>
-                        <div class="setting-item">
-                            <label class="setting-label">Temperature: <span id="temp-value">0.2</span></label>
-                            <input type="range" class="setting-input" id="temperature" min="0" max="1" step="0.1" value="0.2" oninput="updateTempValue(this.value)">
+                        <div class="settings-group-header">
+                            <h3>General Settings</h3>
+                            <span class="settings-group-description">Configure AI behavior and system preferences</span>
                         </div>
                         <div class="setting-item">
-                            <button class="action-btn" data-action="testConnection" id="test-btn">Test Connection</button>
+                            <label class="setting-label">
+                                Temperature: <span id="temp-value" class="setting-value">0.2</span>
+                                <span class="tooltip-trigger" data-tooltip="Controls response creativity: 0.0 = deterministic, 1.0 = highly creative">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M9,9a3,3 0 1,1 6,0c0,2-3,3-3,3"></path>
+                                        <path d="M12,17h.01"></path>
+                                    </svg>
+                                </span>
+                            </label>
+                            <input type="range" class="setting-input temperature-slider" id="temperature" min="0" max="1" step="0.1" value="0.2" aria-label="Temperature setting">
+                            <div class="slider-labels">
+                                <span>Focused</span>
+                                <span>Balanced</span>
+                                <span>Creative</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <button class="action-btn primary" data-action="testConnection" id="test-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 12l2 2 4-4"></path>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                </svg>
+                                Test Connection
+                            </button>
                         </div>
                     </div>
 
@@ -541,6 +662,96 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                         </div>
                         <div class="setting-item">
                             <button class="action-btn" data-action="clearChat">Clear Chat</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Pane -->
+            <div class="pane" id="help-pane">
+                <div class="pane-header">
+                    <h2>Help & Documentation</h2>
+                </div>
+                
+                <div class="help-content">
+                    <div class="help-section">
+                        <h3>Getting Started</h3>
+                        <div class="help-card">
+                            <h4>First Time Setup</h4>
+                            <ol>
+                                <li>Choose your AI service in Settings (Ollama or Groq)</li>
+                                <li>Configure connection settings</li>
+                                <li>Test the connection</li>
+                                <li>Start chatting!</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h3>Features</h3>
+                        <div class="help-card">
+                            <h4>Chat Commands</h4>
+                            <ul>
+                                <li><code>help</code> - Show available commands</li>
+                                <li><code>kbtest</code> - Test knowledge boundary detection</li>
+                                <li><code>tree</code> - Access semantic tree memory</li>
+                                <li><code>helloworld</code> - HelloWorld.txt integration</li>
+                                <li><code>hello world</code> - Activate BBCR protocol</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-card">
+                            <h4>Dashboard Metrics</h4>
+                            <ul>
+                                <li><strong>ΔS Uncertainty:</strong> Measures semantic understanding confidence</li>
+                                <li><strong>Temperature:</strong> Controls response creativity and randomness</li>
+                                <li><strong>BBCR Protocol:</strong> Boundary-Based Coherence Resolution system</li>
+                                <li><strong>Semantic Tree:</strong> Hierarchical memory structure</li>
+                                <li><strong>Hallucination Detection:</strong> Truth monitoring system</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h3>Troubleshooting</h3>
+                        <div class="help-card">
+                            <h4>Common Issues</h4>
+                            <div class="troubleshooting-item">
+                                <strong>Connection Failed:</strong>
+                                <p>Ensure Ollama is running locally or check your Groq API key.</p>
+                            </div>
+                            <div class="troubleshooting-item">
+                                <strong>CORS Errors:</strong>
+                                <p>Restart Ollama with CORS enabled using the test connection button.</p>
+                            </div>
+                            <div class="troubleshooting-item">
+                                <strong>Slow Responses:</strong>
+                                <p>Try reducing temperature or switching to a faster model.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h3>Keyboard Shortcuts</h3>
+                        <div class="help-card">
+                            <div class="shortcut-grid">
+                                <div class="shortcut-item">
+                                    <kbd>Enter</kbd>
+                                    <span>Send message</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Shift + Enter</kbd>
+                                    <span>New line</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Tab</kbd>
+                                    <span>Navigate interface</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <kbd>Esc</kbd>
+                                    <span>Cancel operation</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

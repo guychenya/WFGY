@@ -120,6 +120,7 @@ class ModernTxtOS {
         if (temperature) {
             temperature.addEventListener('input', (e) => {
                 this.temperature = parseFloat(e.target.value);
+                this.updateTempValue(this.temperature);
                 this.saveSettings();
                 this.updateDashboardIfOpen();
             });
@@ -694,6 +695,14 @@ class ModernTxtOS {
             }).catch(() => {
                 this.showNotification('Failed to copy message', 'error');
             });
+        }
+    }
+
+    // Temperature value update
+    updateTempValue(value) {
+        const tempValueElement = document.getElementById('temp-value');
+        if (tempValueElement) {
+            tempValueElement.textContent = value.toFixed(1);
         }
     }
 
