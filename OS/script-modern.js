@@ -70,6 +70,7 @@ class ModernTxtOS {
         document.getElementById('temperature').addEventListener('input', (e) => {
             this.temperature = parseFloat(e.target.value);
             this.saveSettings();
+            this.updateDashboardIfOpen();
         });
 
         // Service switching
@@ -482,6 +483,9 @@ Groq provides extremely fast inference with no local setup required!
         // Update memory
         this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
+        
+        // Update dashboard if open
+        this.updateDashboardIfOpen();
     }
 
     async streamGroqResponse(message, typingId) {
@@ -527,6 +531,9 @@ Groq provides extremely fast inference with no local setup required!
         // Update memory
         this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
+        
+        // Update dashboard if open
+        this.updateDashboardIfOpen();
     }
 
     addMessage(type, content) {
@@ -1137,6 +1144,7 @@ Ready for advanced semantic reasoning.`);
         
         this.knowledgeBoundary.boundaryActive = true;
         this.showNotification('WFGY System Initialized', 'success');
+        this.updateDashboardIfOpen();
     }
 
     performKnowledgeBoundaryTest(command) {
@@ -1209,6 +1217,7 @@ ${deltaS > this.knowledgeBoundary.lambdaObserve ?
         this.knowledgeBoundary.eResonance = 1 - uncertaintyScore;
         
         this.updateBoundaryDisplay();
+        this.updateDashboardIfOpen();
     }
 
     updateBoundaryDisplay() {
@@ -1218,6 +1227,14 @@ ${deltaS > this.knowledgeBoundary.lambdaObserve ?
             memoryStatus.style.background = '#ef4444'; // Red for boundary exceeded
         } else {
             memoryStatus.style.background = '#10b981'; // Green for safe
+        }
+    }
+
+    updateDashboardIfOpen() {
+        // Update dashboard if it's open
+        const dashboard = document.getElementById('dashboard-sidebar');
+        if (dashboard && dashboard.classList.contains('open') && typeof updateDashboardData === 'function') {
+            updateDashboardData();
         }
     }
 
@@ -1583,4 +1600,396 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
     document.head.appendChild(style);
+});
+
+// API Key Validation Function
+async function validateGroqApiKey() {
+    const validateBtn = document.getElementById('groq-validate-btn');
+    const apiKeyInput = document.getElementById('groq-api-key');
+    const apiKey = apiKeyInput.value.trim();
+    
+    if (!apiKey) {
+        txtOS.showNotification('Please enter your Groq API key first', 'error');
+        return;
+    }
+    
+    // Update button state to validating
+    validateBtn.disabled = true;
+    validateBtn.classList.remove('valid', 'invalid');
+    validateBtn.classList.add('validating');
+    
+    // Store the current API key temporarily
+    const originalApiKey = txtOS.groqApiKey;
+    txtOS.groqApiKey = apiKey;
+    
+    try {
+        const isValid = await txtOS.testGroqConnection(true); // Silent test
+        
+        if (isValid) {
+            // Success state
+            validateBtn.classList.remove('validating');
+            validateBtn.classList.add('valid');
+            
+            // Update the icon to checkmark
+            validateBtn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20,6 9,17 4,12"></polyline>
+                </svg>
+            `;
+            
+            // Save the validated API key
+            txtOS.saveSettings();
+            txtOS.showNotification('API key is valid!', 'success');
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                resetValidateButton();
+            }, 3000);
+            
+        } else {
+            // Invalid state
+            validateBtn.classList.remove('validating');
+            validateBtn.classList.add('invalid');
+            
+            // Update the icon to X
+            validateBtn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18"></path>
+                    <path d="M6 6L18 18"></path>
+                </svg>
+            `;
+            
+            // Restore original API key
+            txtOS.groqApiKey = originalApiKey;
+            txtOS.showNotification('Invalid API key. Please check and try again.', 'error');
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                resetValidateButton();
+            }, 3000);
+        }
+        
+    } catch (error) {
+        // Error state
+        validateBtn.classList.remove('validating');
+        validateBtn.classList.add('invalid');
+        
+        validateBtn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18"></path>
+                <path d="M6 6L18 18"></path>
+            </svg>
+        `;
+        
+        // Restore original API key
+        txtOS.groqApiKey = originalApiKey;
+        txtOS.showNotification('Error validating API key: ' + error.message, 'error');
+        
+        // Reset button after 3 seconds
+        setTimeout(() => {
+            resetValidateButton();
+        }, 3000);
+    } finally {
+        validateBtn.disabled = false;
+    }
+}
+
+// Helper function to reset the validation button
+function resetValidateButton() {
+    const validateBtn = document.getElementById('groq-validate-btn');
+    validateBtn.classList.remove('validating', 'valid', 'invalid');
+    
+    // Reset to original thunder icon
+    validateBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 1v6m0 6v6"></path>
+            <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+            <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+        </svg>
+    `;
+}
+
+// Dashboard functionality
+let isDashboardPinned = false;
+
+function toggleDashboard() {
+    const dashboard = document.getElementById('dashboard-sidebar');
+    const settings = document.getElementById('settings-sidebar');
+    
+    // Close settings if open
+    if (settings.classList.contains('open')) {
+        settings.classList.remove('open');
+    }
+    
+    // Toggle dashboard
+    dashboard.classList.toggle('open');
+    
+    // Update dashboard data when opened
+    if (dashboard.classList.contains('open')) {
+        updateDashboardData();
+        startDashboardUpdates();
+    } else {
+        stopDashboardUpdates();
+    }
+}
+
+function toggleDashboardPin() {
+    const dashboard = document.getElementById('dashboard-sidebar');
+    const pinBtn = document.getElementById('pin-dashboard');
+    const container = document.querySelector('.container');
+    
+    isDashboardPinned = !isDashboardPinned;
+    
+    if (isDashboardPinned) {
+        dashboard.classList.add('pinned');
+        pinBtn.classList.add('pinned');
+        container.classList.add('dashboard-pinned');
+        localStorage.setItem('dashboard-pinned', 'true');
+    } else {
+        dashboard.classList.remove('pinned');
+        pinBtn.classList.remove('pinned');
+        container.classList.remove('dashboard-pinned');
+        localStorage.setItem('dashboard-pinned', 'false');
+    }
+}
+
+function switchDashboardTab(tabName) {
+    // Remove active class from all tabs and contents
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Add active class to selected tab and content
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Update specific tab data
+    updateTabData(tabName);
+}
+
+let dashboardUpdateInterval;
+
+function startDashboardUpdates() {
+    // Update dashboard every 2 seconds
+    dashboardUpdateInterval = setInterval(updateDashboardData, 2000);
+}
+
+function stopDashboardUpdates() {
+    if (dashboardUpdateInterval) {
+        clearInterval(dashboardUpdateInterval);
+    }
+}
+
+function updateDashboardData() {
+    if (!txtOS) return;
+    
+    // Update Semantic Core KPIs
+    updateSemanticKPIs();
+    
+    // Update Reasoning Protocols
+    updateReasoningProtocols();
+    
+    // Update Operational KPIs
+    updateOperationalKPIs();
+}
+
+function updateSemanticKPIs() {
+    // ΔS (Semantic Uncertainty)
+    const deltaS = txtOS.knowledgeBoundary.deltaS || 0;
+    const deltaSRing = document.getElementById('delta-s-ring');
+    const deltaSValue = document.getElementById('delta-s-value');
+    
+    if (deltaSRing && deltaSValue) {
+        const circumference = 220;
+        const offset = circumference - (deltaS * circumference);
+        deltaSRing.style.strokeDashoffset = offset;
+        deltaSValue.textContent = deltaS.toFixed(3);
+        
+        // Change color based on uncertainty level
+        if (deltaS > 0.7) {
+            deltaSRing.style.stroke = '#ef4444'; // Red for high uncertainty
+        } else if (deltaS > 0.4) {
+            deltaSRing.style.stroke = '#f59e0b'; // Orange for medium
+        } else {
+            deltaSRing.style.stroke = '#3b82f6'; // Blue for low
+        }
+    }
+    
+    // λ_observe (Boundary Threshold)
+    const lambda = txtOS.knowledgeBoundary.lambdaObserve || 0.7;
+    const lambdaBar = document.getElementById('lambda-bar');
+    const lambdaValue = document.getElementById('lambda-value');
+    
+    if (lambdaBar && lambdaValue) {
+        lambdaBar.style.width = `${lambda * 100}%`;
+        lambdaValue.textContent = lambda.toFixed(3);
+    }
+    
+    // E_resonance (Logical Resonance)
+    const resonance = txtOS.knowledgeBoundary.eResonance || 0;
+    const resonanceRing = document.getElementById('resonance-ring');
+    const resonanceValue = document.getElementById('resonance-value');
+    
+    if (resonanceRing && resonanceValue) {
+        const circumference = 220;
+        const offset = circumference - (resonance * circumference);
+        resonanceRing.style.strokeDashoffset = offset;
+        resonanceValue.textContent = resonance.toFixed(3);
+    }
+    
+    // Knowledge Boundary Status
+    const boundaryStatus = document.getElementById('boundary-status');
+    const boundaryMonitors = document.getElementById('boundary-monitors');
+    
+    if (boundaryStatus && boundaryMonitors) {
+        const isActive = txtOS.knowledgeBoundary.boundaryActive;
+        boundaryStatus.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+        boundaryStatus.className = `status-badge ${isActive ? 'available' : ''}`;
+        boundaryMonitors.textContent = isActive ? '1' : '0';
+    }
+}
+
+function updateReasoningProtocols() {
+    // BBCR Protocol Status
+    const bbcrStatus = document.getElementById('bbcr-status');
+    const bbcrPivots = document.getElementById('bbcr-pivots');
+    
+    if (bbcrStatus && bbcrPivots) {
+        const isActive = txtOS.knowledgeBoundary.boundaryActive;
+        bbcrStatus.className = isActive ? 'protocol-indicator active' : 'protocol-indicator';
+        bbcrPivots.textContent = txtOS.reasoningChain ? txtOS.reasoningChain.length : 0;
+    }
+    
+    // Semantic Tree
+    const treeCount = document.getElementById('tree-count');
+    const treeDepth = document.getElementById('tree-depth');
+    const treeNodes = document.getElementById('tree-nodes');
+    
+    if (treeCount && treeDepth && treeNodes) {
+        const nodeCount = txtOS.memoryTree ? txtOS.memoryTree.length : 0;
+        treeCount.textContent = nodeCount;
+        treeDepth.textContent = Math.ceil(nodeCount / 3);
+        
+        // Update tree visualization
+        const nodes = treeNodes.querySelectorAll('.tree-node');
+        nodes.forEach((node, index) => {
+            if (index < Math.min(nodeCount, 3)) {
+                node.classList.add('active');
+            } else {
+                node.classList.remove('active');
+            }
+        });
+    }
+    
+    // Resonance Amplification
+    const amplificationLevel = document.getElementById('amplification-level');
+    if (amplificationLevel) {
+        const resonance = txtOS.knowledgeBoundary.eResonance || 0;
+        const amplification = 1 + (resonance * 2); // 1.0x to 3.0x
+        amplificationLevel.textContent = `${amplification.toFixed(1)}x`;
+    }
+}
+
+function updateOperationalKPIs() {
+    // Temperature
+    const tempFill = document.getElementById('temp-fill');
+    const tempDisplay = document.getElementById('temp-display');
+    
+    if (tempFill && tempDisplay) {
+        const temperature = txtOS.temperature || 0.2;
+        tempFill.style.height = `${temperature * 100}%`;
+        tempDisplay.textContent = temperature.toFixed(1);
+    }
+    
+    // Hallucination Detection
+    const hallucinationStatus = document.getElementById('hallucination-status');
+    const detectionFill = document.getElementById('detection-fill');
+    
+    if (hallucinationStatus && detectionFill) {
+        const isEnabled = txtOS.knowledgeBoundary.boundaryActive;
+        hallucinationStatus.textContent = isEnabled ? 'ENABLED' : 'DISABLED';
+        hallucinationStatus.className = `status-badge ${isEnabled ? 'available' : ''}`;
+        detectionFill.style.width = isEnabled ? '85%' : '0%';
+    }
+    
+    // Memory Export
+    const exportStatus = document.getElementById('export-status');
+    const memorySize = document.getElementById('memory-size');
+    const memoryNodes = document.getElementById('memory-nodes');
+    
+    if (exportStatus && memorySize && memoryNodes) {
+        const nodeCount = txtOS.memoryTree ? txtOS.memoryTree.length : 0;
+        const sizeKB = Math.max(1, Math.round(nodeCount * 0.5)); // Estimate size
+        
+        exportStatus.textContent = nodeCount > 0 ? 'AVAILABLE' : 'EMPTY';
+        exportStatus.className = `status-badge ${nodeCount > 0 ? 'available' : ''}`;
+        memorySize.textContent = `${sizeKB} KB`;
+        memoryNodes.textContent = nodeCount;
+    }
+    
+    // Update activity chart
+    updateActivityChart();
+}
+
+function updateActivityChart() {
+    const activityBars = document.getElementById('activity-bars');
+    if (!activityBars) return;
+    
+    const bars = activityBars.querySelectorAll('.bar');
+    const messageCount = txtOS.messageCount || 0;
+    const memoryCount = txtOS.memoryTree ? txtOS.memoryTree.length : 0;
+    const reasoningCount = txtOS.reasoningChain ? txtOS.reasoningChain.length : 0;
+    
+    // Generate some dynamic activity data
+    const maxValue = Math.max(10, messageCount, memoryCount, reasoningCount);
+    
+    bars.forEach((bar, index) => {
+        let height;
+        switch (index % 3) {
+            case 0: // Messages
+                height = Math.min(90, (messageCount / maxValue) * 100);
+                break;
+            case 1: // Reasoning
+                height = Math.min(90, (reasoningCount / maxValue) * 100);
+                break;
+            case 2: // Memory
+                height = Math.min(90, (memoryCount / maxValue) * 100);
+                break;
+            default:
+                height = Math.random() * 60 + 20;
+        }
+        bar.style.height = `${Math.max(4, height)}%`;
+    });
+}
+
+function updateTabData(tabName) {
+    switch (tabName) {
+        case 'semantic':
+            updateSemanticKPIs();
+            break;
+        case 'reasoning':
+            updateReasoningProtocols();
+            break;
+        case 'operational':
+            updateOperationalKPIs();
+            break;
+    }
+}
+
+// Initialize dashboard on load
+document.addEventListener('DOMContentLoaded', () => {
+    // Restore pinned state
+    const wasPinned = localStorage.getItem('dashboard-pinned') === 'true';
+    if (wasPinned) {
+        isDashboardPinned = false; // Set to false first so toggle works correctly
+        toggleDashboardPin();
+    }
+    
+    // Update dashboard periodically if open
+    setInterval(() => {
+        const dashboard = document.getElementById('dashboard-sidebar');
+        if (dashboard && dashboard.classList.contains('open')) {
+            updateDashboardData();
+        }
+    }, 5000); // Update every 5 seconds when open
 });

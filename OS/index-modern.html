@@ -88,6 +88,15 @@
                     <span class="status-dot" id="memory-status"></span>
                     <span>Memory</span>
                 </div>
+                <button class="dashboard-toggle" onclick="toggleDashboard()" title="Dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M9 9h6v6H9z"></path>
+                        <path d="M9 3v6"></path>
+                        <path d="M15 3v6"></path>
+                        <path d="M21 9H3"></path>
+                    </svg>
+                </button>
                 <button class="settings-toggle" onclick="toggleSettings()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -219,7 +228,17 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                     <h3>Groq Configuration</h3>
                     <div class="setting-item">
                         <label class="setting-label">API Key</label>
-                        <input type="password" class="setting-input" id="groq-api-key" placeholder="gsk_...">
+                        <div class="api-key-container">
+                            <input type="password" class="setting-input api-key-input" id="groq-api-key" placeholder="gsk_...">
+                            <button class="api-validate-btn" id="groq-validate-btn" onclick="validateGroqApiKey()" title="Validate API Key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M12 1v6m0 6v6"></path>
+                                    <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                                    <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="setting-item">
                         <label class="setting-label">Model</label>
@@ -254,6 +273,310 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                     </div>
                     <div class="setting-item">
                         <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Sidebar -->
+        <div class="sidebar dashboard-sidebar" id="dashboard-sidebar">
+            <div class="sidebar-header">
+                <h2>📊 WFGY Dashboard</h2>
+                <div class="dashboard-controls">
+                    <button class="pin-btn" id="pin-dashboard" onclick="toggleDashboardPin()" title="Pin Dashboard">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 9H8L3 14L10 21L15 16V9Z"></path>
+                            <path d="M12 9V2"></path>
+                        </svg>
+                    </button>
+                    <button class="settings-toggle" onclick="toggleDashboard()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6L18 18"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="dashboard-tabs">
+                <button class="tab-btn active" onclick="switchDashboardTab('semantic')" data-tab="semantic">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+                    </svg>
+                    Semantic Core
+                </button>
+                <button class="tab-btn" onclick="switchDashboardTab('reasoning')" data-tab="reasoning">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                        <path d="M2 17L12 22L22 17"></path>
+                        <path d="M2 12L12 17L22 12"></path>
+                    </svg>
+                    Reasoning
+                </button>
+                <button class="tab-btn" onclick="switchDashboardTab('operational')" data-tab="operational">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Operational
+                </button>
+            </div>
+
+            <div class="dashboard-content">
+                <!-- Semantic Core KPIs Tab -->
+                <div class="tab-content active" id="semantic-tab">
+                    <div class="kpi-grid">
+                        <!-- Delta S (Semantic Uncertainty) -->
+                        <div class="kpi-card primary">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">🌊</span>
+                                <div class="kpi-title">
+                                    <h4>ΔS Uncertainty</h4>
+                                    <span class="kpi-subtitle">Semantic confidence</span>
+                                </div>
+                            </div>
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="80" height="80">
+                                    <circle cx="40" cy="40" r="35" stroke="#e2e8f0" stroke-width="6" fill="none"></circle>
+                                    <circle cx="40" cy="40" r="35" stroke="#3b82f6" stroke-width="6" fill="none" 
+                                            stroke-dasharray="220" stroke-dashoffset="220" id="delta-s-ring"></circle>
+                                </svg>
+                                <div class="progress-value" id="delta-s-value">0.000</div>
+                            </div>
+                        </div>
+
+                        <!-- Lambda Observe (Boundary Threshold) -->
+                        <div class="kpi-card warning">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">⚡</span>
+                                <div class="kpi-title">
+                                    <h4>λ_observe Threshold</h4>
+                                    <span class="kpi-subtitle">Boundary trigger</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="lambda-bar"></div>
+                                </div>
+                                <div class="progress-value" id="lambda-value">0.700</div>
+                            </div>
+                        </div>
+
+                        <!-- E_resonance (Logical Resonance) -->
+                        <div class="kpi-card success">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">🎵</span>
+                                <div class="kpi-title">
+                                    <h4>E_resonance</h4>
+                                    <span class="kpi-subtitle">Logic coherence</span>
+                                </div>
+                            </div>
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="80" height="80">
+                                    <circle cx="40" cy="40" r="35" stroke="#e2e8f0" stroke-width="6" fill="none"></circle>
+                                    <circle cx="40" cy="40" r="35" stroke="#10b981" stroke-width="6" fill="none" 
+                                            stroke-dasharray="220" stroke-dashoffset="220" id="resonance-ring"></circle>
+                                </svg>
+                                <div class="progress-value" id="resonance-value">0.000</div>
+                            </div>
+                        </div>
+
+                        <!-- Knowledge Boundary Status -->
+                        <div class="kpi-card info">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">🛡️</span>
+                                <div class="kpi-title">
+                                    <h4>Knowledge Boundary</h4>
+                                    <span class="kpi-subtitle">Safety monitoring</span>
+                                </div>
+                            </div>
+                            <div class="status-indicator">
+                                <div class="status-badge" id="boundary-status">INACTIVE</div>
+                                <div class="status-details">
+                                    <div class="status-item">
+                                        <span>Monitors:</span>
+                                        <span id="boundary-monitors">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reasoning Protocols Tab -->
+                <div class="tab-content" id="reasoning-tab">
+                    <div class="kpi-grid">
+                        <!-- BBCR Protocol -->
+                        <div class="kpi-card primary">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">🔄</span>
+                                <div class="kpi-title">
+                                    <h4>BBCR Protocol</h4>
+                                    <span class="kpi-subtitle">Coherence resolution</span>
+                                </div>
+                            </div>
+                            <div class="protocol-status">
+                                <div class="protocol-indicator" id="bbcr-status">
+                                    <div class="pulse-dot"></div>
+                                    <span>Monitoring</span>
+                                </div>
+                                <div class="protocol-stats">
+                                    <div class="stat">
+                                        <span>Pivots:</span>
+                                        <span id="bbcr-pivots">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Semantic Tree Navigation -->
+                        <div class="kpi-card success">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">🌲</span>
+                                <div class="kpi-title">
+                                    <h4>Semantic Tree</h4>
+                                    <span class="kpi-subtitle">Memory navigation</span>
+                                </div>
+                            </div>
+                            <div class="tree-visual">
+                                <div class="tree-nodes" id="tree-nodes">
+                                    <div class="tree-node active">
+                                        <div class="node-dot"></div>
+                                    </div>
+                                    <div class="tree-node">
+                                        <div class="node-dot"></div>
+                                    </div>
+                                    <div class="tree-node">
+                                        <div class="node-dot"></div>
+                                    </div>
+                                </div>
+                                <div class="tree-stats">
+                                    <span>Nodes: <strong id="tree-count">0</strong></span>
+                                    <span>Depth: <strong id="tree-depth">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resonance Amplification -->
+                        <div class="kpi-card warning">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">📈</span>
+                                <div class="kpi-title">
+                                    <h4>Resonance Amplification</h4>
+                                    <span class="kpi-subtitle">Pathway strengthening</span>
+                                </div>
+                            </div>
+                            <div class="amplification-visual">
+                                <div class="pathway-flow">
+                                    <div class="flow-line"></div>
+                                    <div class="flow-dots">
+                                        <div class="flow-dot"></div>
+                                        <div class="flow-dot"></div>
+                                        <div class="flow-dot"></div>
+                                    </div>
+                                </div>
+                                <div class="amplification-level" id="amplification-level">1.0x</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operational KPIs Tab -->
+                <div class="tab-content" id="operational-tab">
+                    <div class="kpi-grid">
+                        <!-- Temperature -->
+                        <div class="kpi-card danger">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">🌡️</span>
+                                <div class="kpi-title">
+                                    <h4>Temperature</h4>
+                                    <span class="kpi-subtitle">Creativity level</span>
+                                </div>
+                            </div>
+                            <div class="thermometer-container">
+                                <div class="thermometer">
+                                    <div class="thermometer-fill" id="temp-fill"></div>
+                                </div>
+                                <div class="progress-value" id="temp-display">0.2</div>
+                            </div>
+                        </div>
+
+                        <!-- Hallucination Detection -->
+                        <div class="kpi-card info">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">👁️</span>
+                                <div class="kpi-title">
+                                    <h4>Hallucination Detection</h4>
+                                    <span class="kpi-subtitle">Truth monitoring</span>
+                                </div>
+                            </div>
+                            <div class="detection-status">
+                                <div class="status-badge" id="hallucination-status">DISABLED</div>
+                                <div class="detection-meter">
+                                    <div class="meter-bar">
+                                        <div class="meter-fill" id="detection-fill"></div>
+                                    </div>
+                                    <span>Confidence</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Memory Export -->
+                        <div class="kpi-card success">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">💾</span>
+                                <div class="kpi-title">
+                                    <h4>Memory Export</h4>
+                                    <span class="kpi-subtitle">Data availability</span>
+                                </div>
+                            </div>
+                            <div class="export-status">
+                                <div class="status-badge available" id="export-status">AVAILABLE</div>
+                                <div class="export-stats">
+                                    <div class="stat">
+                                        <span>Size:</span>
+                                        <span id="memory-size">0 KB</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span>Nodes:</span>
+                                        <span id="memory-nodes">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Activity -->
+                        <div class="kpi-card primary full-width">
+                            <div class="kpi-header">
+                                <span class="kpi-icon">📊</span>
+                                <div class="kpi-title">
+                                    <h4>Real-time Activity</h4>
+                                    <span class="kpi-subtitle">System performance</span>
+                                </div>
+                            </div>
+                            <div class="activity-chart">
+                                <div class="chart-bars" id="activity-bars">
+                                    <div class="bar" style="height: 20%"></div>
+                                    <div class="bar" style="height: 40%"></div>
+                                    <div class="bar" style="height: 60%"></div>
+                                    <div class="bar" style="height: 30%"></div>
+                                    <div class="bar" style="height: 80%"></div>
+                                    <div class="bar" style="height: 50%"></div>
+                                    <div class="bar" style="height: 70%"></div>
+                                    <div class="bar" style="height: 90%"></div>
+                                </div>
+                                <div class="chart-labels">
+                                    <span>Messages</span>
+                                    <span>Reasoning</span>
+                                    <span>Memory</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
