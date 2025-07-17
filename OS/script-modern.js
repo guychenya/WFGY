@@ -44,11 +44,13 @@ class ModernTxtOS {
         this.loadSettings();
         this.setupEventListeners();
         this.initializePerformanceOptimizations();
+        this.setupUnifiedNavigation();
         
         // Delay auto-connect to ensure DOM is fully loaded
         setTimeout(() => {
             this.autoConnectService();
             this.setupOllamaAutoStart();
+            this.updateVersionDisplay();
         }, 1000);
     }
 
@@ -113,12 +115,15 @@ class ModernTxtOS {
         // Throttled scroll handler
         this.throttledScroll = this.throttle(() => {
             const container = document.getElementById('chat-messages');
-            if (container.scrollTop + container.clientHeight >= container.scrollHeight - 10) {
+            if (container && container.scrollTop + container.clientHeight >= container.scrollHeight - 10) {
                 this.processRenderQueue();
             }
         }, 16);
 
-        document.getElementById('chat-messages').addEventListener('scroll', this.throttledScroll);
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.addEventListener('scroll', this.throttledScroll);
+        }
     }
 
     processRenderQueue() {
@@ -345,6 +350,218 @@ class ModernTxtOS {
 
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Unified Navigation System
+    setupUnifiedNavigation() {
+        // Initialize active pane
+        this.currentPane = 'chat';
+        this.showPane('chat');
+        
+        // Set up version display
+        this.updateVersionDisplay();
+    }
+
+    switchPane(paneId) {
+        // Hide all panes
+        document.querySelectorAll('.pane').forEach(pane => {
+            pane.classList.remove('active');
+        });
+        
+        // Remove active state from all nav items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Show selected pane
+        const targetPane = document.getElementById(`${paneId}-pane`);
+        if (targetPane) {
+            targetPane.classList.add('active');
+        }
+        
+        // Activate corresponding nav item
+        const navItem = document.querySelector(`[data-pane="${paneId}"]`);
+        if (navItem) {
+            navItem.classList.add('active');
+        }
+        
+        this.currentPane = paneId;
+        
+        // Handle pane-specific initialization
+        switch(paneId) {
+            case 'dashboard':
+                this.refreshDashboard();
+                break;
+            case 'history':
+                this.loadChatHistory();
+                break;
+            case 'settings':
+                this.loadSettings();
+                break;
+        }
+    }
+
+    showPane(paneId) {
+        this.switchPane(paneId);
+    }
+
+    // Dashboard tab switching
+    switchDashboardTab(tabId) {
+        // Hide all dashboard tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Remove active state from all tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Show selected tab
+        const targetTab = document.getElementById(`${tabId}-tab`);
+        if (targetTab) {
+            targetTab.classList.add('active');
+        }
+        
+        // Activate corresponding tab button
+        const tabBtn = document.querySelector(`[data-tab="${tabId}"]`);
+        if (tabBtn) {
+            tabBtn.classList.add('active');
+        }
+    }
+
+    // Chat History Management
+    loadChatHistory() {
+        const historyList = document.getElementById('history-list');
+        if (!historyList) return;
+        
+        // Load from localStorage or create empty list
+        const savedHistory = localStorage.getItem('txtosHistory');
+        const history = savedHistory ? JSON.parse(savedHistory) : [];
+        
+        historyList.innerHTML = '';
+        
+        if (history.length === 0) {
+            historyList.innerHTML = '<div class="history-item"><div class="history-preview">No chat history yet</div></div>';
+            return;
+        }
+        
+        history.reverse().forEach((session, index) => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `
+                <div class="history-preview">${session.preview}</div>
+                <div class="history-meta">${session.timestamp}</div>
+            `;
+            item.addEventListener('click', () => this.loadHistorySession(session));
+            historyList.appendChild(item);
+        });
+    }
+
+    saveCurrentChat() {
+        const messages = document.querySelectorAll('.message');
+        if (messages.length === 0) return;
+        
+        const chatData = {
+            id: Date.now().toString(),
+            timestamp: new Date().toLocaleString(),
+            preview: this.extractChatPreview(),
+            messages: Array.from(messages).map(msg => ({
+                type: msg.classList.contains('user') ? 'user' : 'assistant',
+                content: msg.querySelector('.message-content').textContent
+            }))
+        };
+        
+        const savedHistory = localStorage.getItem('txtosHistory');
+        const history = savedHistory ? JSON.parse(savedHistory) : [];
+        history.push(chatData);
+        
+        // Keep only last 50 sessions
+        if (history.length > 50) {
+            history.shift();
+        }
+        
+        localStorage.setItem('txtosHistory', JSON.stringify(history));
+    }
+
+    extractChatPreview() {
+        const firstUserMessage = document.querySelector('.message.user .message-content');
+        if (firstUserMessage) {
+            const text = firstUserMessage.textContent.trim();
+            return text.length > 60 ? text.substring(0, 60) + '...' : text;
+        }
+        return 'Chat session';
+    }
+
+    loadHistorySession(session) {
+        // Switch to chat pane
+        this.switchPane('chat');
+        
+        // Clear current messages
+        const chatContainer = document.getElementById('chat-messages');
+        chatContainer.innerHTML = '';
+        
+        // Load messages from session
+        session.messages.forEach(msg => {
+            this.addMessage(msg.content, msg.type, false);
+        });
+    }
+
+    clearHistory() {
+        localStorage.removeItem('txtosHistory');
+        this.loadChatHistory();
+        this.showNotification('Chat history cleared', 'success');
+    }
+
+    // Dashboard actions
+    refreshDashboard() {
+        this.updateDashboardKPIs();
+    }
+
+    newChat() {
+        if (confirm('Start a new chat? Current conversation will be saved to history.')) {
+            this.saveCurrentChat();
+            const chatContainer = document.getElementById('chat-messages');
+            chatContainer.innerHTML = '';
+            this.addMessage('Welcome to TXT OS v2.3! I\'m powered by the WFGY Reasoning Engine with advanced semantic capabilities.\\n\\n**Features Available:**\\n- Knowledge Boundary Detection (`kbtest`)\\n- Semantic Tree Memory (`tree`)\\n- HelloWorld.txt Integration (`helloworld`)\\n- BBCR Protocol (`hello world`)\\n\\nType `help` to see all commands, or ask me anything to begin reasoning together.', 'assistant', false);
+        }
+    }
+
+    saveChat() {
+        this.saveCurrentChat();
+        this.showNotification('Chat saved to history', 'success');
+    }
+
+    exportChat() {
+        const messages = Array.from(document.querySelectorAll('.message')).map(msg => {
+            const type = msg.classList.contains('user') ? 'User' : 'Assistant';
+            const content = msg.querySelector('.message-content').textContent;
+            return `${type}: ${content}`;
+        }).join('\n\n');
+        
+        const blob = new Blob([messages], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `txtost-chat-${new Date().toISOString().slice(0, 10)}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // Version display
+    updateVersionDisplay() {
+        const versionDate = document.getElementById('version-date');
+        if (versionDate) {
+            const now = new Date();
+            const timeString = now.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            versionDate.textContent = timeString;
+        }
     }
 
     showCORSError() {
@@ -1778,32 +1995,39 @@ function updateVersionDisplay() {
 document.addEventListener('DOMContentLoaded', () => {
     window.txtOS = new ModernTxtOS();
     
-    // Initialize version display
-    updateVersionDisplay();
+    // Global functions for unified navigation
+    window.switchPane = (paneId) => window.txtOS.switchPane(paneId);
+    window.switchDashboardTab = (tabId) => window.txtOS.switchDashboardTab(tabId);
+    window.newChat = () => window.txtOS.newChat();
+    window.saveChat = () => window.txtOS.saveChat();
+    window.exportChat = () => window.txtOS.exportChat();
+    window.clearHistory = () => window.txtOS.clearHistory();
+    window.refreshDashboard = () => window.txtOS.refreshDashboard();
     
-    // Initialize dark mode
-    const savedDarkMode = localStorage.getItem('dark-mode');
-    if (savedDarkMode === 'true') {
-        document.body.classList.add('dark-mode');
+});
+
+// Initialize dark mode
+const savedDarkMode = localStorage.getItem('dark-mode');
+if (savedDarkMode === 'true') {
+    document.body.classList.add('dark-mode');
+}
+
+// Add streaming cursor animation
+const style = document.createElement('style');
+style.textContent = `
+    .streaming-cursor {
+        display: inline-block;
+        animation: blink 1s infinite;
+        color: var(--primary-color);
+        font-weight: bold;
     }
     
-    // Add streaming cursor animation
-    const style = document.createElement('style');
-    style.textContent = `
-        .streaming-cursor {
-            display: inline-block;
-            animation: blink 1s infinite;
-            color: var(--primary-color);
-            font-weight: bold;
-        }
-        
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
-});
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
 
 // API Key Validation Function
 async function validateGroqApiKey() {
