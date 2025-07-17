@@ -1746,12 +1746,15 @@ function handleDrop(event) {
 // Version Management
 const APP_VERSION = {
     major: 2,
-    minor: 1,
+    minor: 2,
     patch: 0,
     updated: new Date().toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'short', 
-        day: 'numeric' 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
     })
 };
 

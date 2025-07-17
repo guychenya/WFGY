@@ -1,0 +1,139 @@
+{
+    "recommendations": [
+        // Essential Web Development Extensions
+        "ms-vscode.vscode-json",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "formulahendry.auto-rename-tag",
+        "formulahendry.auto-close-tag",
+        "christian-kohler.path-intellisense",
+        "christian-kohler.npm-intellisense",
+        
+        // HTML & CSS Extensions
+        "ecmel.vscode-html-css",
+        "zignd.html-css-class-completion",
+        "pranaygp.vscode-css-peek",
+        "bradlc.vscode-tailwindcss",
+        "ritwickdey.live-sass-compiler",
+        "ritwickdey.liveserver",
+        "ms-vscode.live-server",
+        
+        // JavaScript & JSON Extensions
+        "ms-vscode.vscode-js-profile-flame",
+        "ms-vscode.vscode-js-profile-table",
+        "ms-vscode.js-debug-nightly",
+        "ms-vscode.references-view",
+        "ms-vscode.vscode-json",
+        "zainchen.json",
+        
+        // Code Quality & Linting
+        "ms-vscode.vscode-eslint",
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-jshint",
+        "hookyqr.beautify",
+        "esbenp.prettier-vscode",
+        "editorconfig.editorconfig",
+        
+        // Git & Version Control
+        "eamodio.gitlens",
+        "donjayamanne.githistory",
+        "mhutchie.git-graph",
+        "github.vscode-pull-request-github",
+        "github.codespaces",
+        "github.copilot",
+        "github.copilot-chat",
+        
+        // Productivity & Navigation
+        "alefragnani.bookmarks",
+        "ms-vscode.vscode-speech",
+        "ms-vscode.hexeditor",
+        "ms-vscode.vscode-embedded-tools",
+        "gruntfuggly.todo-tree",
+        "aaron-bond.better-comments",
+        "streetsidesoftware.code-spell-checker",
+        "wayou.vscode-todo-highlight",
+        "shd101wyy.markdown-preview-enhanced",
+        
+        // UI & Themes
+        "pkief.material-icon-theme",
+        "ms-vscode.theme-tomorrowkit",
+        "github.github-vscode-theme",
+        "dracula-theme.theme-dracula",
+        "ms-vscode.vscode-theme-onedarkhc",
+        "equinusocio.vsc-community-material-theme",
+        
+        // File & Project Management
+        "ms-vscode.vscode-file-watcher",
+        "ms-vscode.vscode-folder-source-actions",
+        "ms-vscode.vscode-runner",
+        "formulahendry.code-runner",
+        "ms-vscode.vscode-workspace-trust",
+        
+        // Server & Development Tools
+        "ms-vscode.vscode-python",
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "ms-vscode.vscode-node-azure-pack",
+        "ms-azuretools.vscode-azureappservice",
+        "ms-vscode.azure-account",
+        
+        // Debugging & Testing
+        "ms-vscode.vscode-js-debug",
+        "ms-vscode.vscode-js-profile-flame",
+        "ms-vscode.vscode-node-debug2",
+        "ms-vscode.vscode-chrome-debug-core",
+        "ms-edgedevtools.vscode-edge-devtools",
+        "ms-vscode.vscode-edge-debug2",
+        
+        // Documentation & Comments
+        "ms-vscode.vscode-markdown",
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-mermaid",
+        "bierner.markdown-preview-github-styles",
+        "davidanson.vscode-markdownlint",
+        "ms-vscode.vscode-mdx",
+        
+        // AI & Machine Learning
+        "ms-toolsai.vscode-ai",
+        "github.copilot",
+        "github.copilot-chat",
+        "ms-toolsai.jupyter-keymap",
+        
+        // Performance & Monitoring
+        "ms-vscode.vscode-performance",
+        "ms-vscode.vscode-loader",
+        "ms-vscode.vscode-selfhost-test-provider",
+        
+        // Security & Validation
+        "ms-vscode.vscode-security",
+        "ms-vscode.vscode-trusted-domain-manager",
+        "ms-vscode.vscode-workspace-trust",
+        
+        // Mobile & Cross-Platform
+        "ms-vscode.vscode-cordova",
+        "ms-vscode.vscode-react-native",
+        "ms-vscode.vscode-flutter",
+        
+        // Database & APIs
+        "ms-vscode.vscode-sqlite",
+        "ms-vscode.vscode-mongodb",
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        
+        // Snippets & Code Generation
+        "ms-vscode.vscode-snippets",
+        "ms-vscode.vscode-emmet-helper",
+        "ms-vscode.vscode-css-formatter",
+        "bradlc.vscode-tailwindcss",
+        "formulahendry.auto-complete-tag"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.vscode-typescript",
+        "ms-vscode.vscode-css-languageservice",
+        "ms-vscode.vscode-html-languageservice",
+        "hookyqr.jshint",
+        "ms-vscode.node-debug",
+        "ms-vscode.node-debug2"
+    ]
+}

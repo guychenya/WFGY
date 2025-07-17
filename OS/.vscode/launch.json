@@ -7,9 +7,129 @@
         {
             "type": "chrome",
             "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
+            "name": "🚀 Launch TXT OS (Modern) - Chrome",
+            "url": "http://localhost:5500/index-modern.html",
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "userDataDir": "${workspaceFolder}/.vscode/chrome-debug-profile",
+            "runtimeArgs": [
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--remote-debugging-port=9222"
+            ],
+            "preLaunchTask": "serve-modern",
+            "postDebugTask": "cleanup-server"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "🎯 Launch TXT OS (Legacy) - Chrome",
+            "url": "http://localhost:5500/index.html",
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "userDataDir": "${workspaceFolder}/.vscode/chrome-debug-profile-legacy",
+            "runtimeArgs": [
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--remote-debugging-port=9223"
+            ],
+            "preLaunchTask": "serve-legacy",
+            "postDebugTask": "cleanup-server"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "🐍 Launch Python Server",
+            "program": "${workspaceFolder}/server.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "autoAttachChildProcesses": true
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "🔧 Debug Connection Test",
+            "url": "http://localhost:5500/test-connection.html",
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "userDataDir": "${workspaceFolder}/.vscode/chrome-debug-profile-test",
+            "runtimeArgs": [
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--remote-debugging-port=9224"
+            ],
+            "preLaunchTask": "serve-test",
+            "postDebugTask": "cleanup-server"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "🐛 Debug Chat Interface",
+            "url": "http://localhost:5500/debug-chat.html",
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "userDataDir": "${workspaceFolder}/.vscode/chrome-debug-profile-debug",
+            "runtimeArgs": [
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--remote-debugging-port=9225"
+            ],
+            "preLaunchTask": "serve-debug",
+            "postDebugTask": "cleanup-server"
+        },
+        {
+            "type": "chrome",
+            "request": "attach",
+            "name": "🔗 Attach to Chrome",
+            "port": 9222,
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "urlFilter": "http://localhost:*/*"
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "🔗 Attach to Node Process",
+            "port": 9229,
+            "restart": true,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "🚀 Launch Full Stack (Modern + Python)",
+            "configurations": [
+                "🐍 Launch Python Server",
+                "🚀 Launch TXT OS (Modern) - Chrome"
+            ],
+            "presentation": {
+                "hidden": false,
+                "group": "Full Stack",
+                "order": 1
+            }
+        },
+        {
+            "name": "🧪 Debug & Test Environment",
+            "configurations": [
+                "🔧 Debug Connection Test",
+                "🐛 Debug Chat Interface"
+            ],
+            "presentation": {
+                "hidden": false,
+                "group": "Testing",
+                "order": 2
+            }
         }
     ]
 }

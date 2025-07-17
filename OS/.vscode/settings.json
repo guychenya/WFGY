@@ -1,0 +1,227 @@
+{
+    // Editor Settings
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "editor.rulers": [80, 120],
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 120,
+    "editor.minimap.enabled": true,
+    "editor.bracketPairColorization.enabled": true,
+    "editor.guides.bracketPairs": true,
+    "editor.autoClosingBrackets": "always",
+    "editor.autoClosingQuotes": "always",
+    "editor.suggestSelection": "first",
+    "editor.quickSuggestions": {
+        "other": "on",
+        "comments": "off",
+        "strings": "on"
+    },
+
+    // File Settings
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true,
+        "**/.vscode": false
+    },
+    "files.associations": {
+        "*.html": "html",
+        "*.css": "css",
+        "*.js": "javascript",
+        "*.json": "json",
+        "*.md": "markdown"
+    },
+
+    // HTML Settings
+    "html.format.enable": true,
+    "html.format.wrapLineLength": 120,
+    "html.format.indentInnerHtml": true,
+    "html.format.preserveNewLines": true,
+    "html.format.maxPreserveNewLines": 2,
+    "html.format.indentHandlebars": true,
+    "html.format.endWithNewline": true,
+    "html.format.extraLiners": "head, body, /html",
+    "html.format.wrapAttributes": "auto",
+    "html.suggest.html5": true,
+    "html.autoClosingTags": true,
+
+    // CSS Settings
+    "css.validate": true,
+    "css.lint.unknownAtRules": "ignore",
+    "css.lint.vendorPrefix": "warning",
+    "css.lint.duplicateProperties": "warning",
+    "css.lint.emptyRules": "warning",
+    "css.lint.importStatement": "ignore",
+    "css.lint.boxModel": "ignore",
+    "css.lint.universalSelector": "ignore",
+    "css.lint.zeroUnits": "ignore",
+    "css.lint.fontFaceProperties": "warning",
+    "css.lint.hexColorLength": "error",
+    "css.lint.argumentsInColorFunction": "error",
+    "css.lint.unknownProperties": "warning",
+    "css.lint.ieHack": "ignore",
+    "css.lint.unknownVendorSpecificProperties": "ignore",
+    "css.lint.propertyIgnoredDueToDisplay": "warning",
+    "css.lint.important": "ignore",
+    "css.lint.float": "ignore",
+    "css.lint.idSelector": "ignore",
+    "css.format.enable": true,
+    "css.format.newlineBetweenSelectors": true,
+    "css.format.newlineBetweenRules": true,
+    "css.format.spaceAroundSelectorSeparator": true,
+    "css.format.braceStyle": "collapse",
+    "css.format.maxPreserveNewLines": 2,
+    "css.format.preserveNewLines": true,
+
+    // JavaScript Settings
+    "javascript.validate.enable": true,
+    "javascript.format.enable": true,
+    "javascript.format.insertSpaceAfterCommaDelimiter": true,
+    "javascript.format.insertSpaceAfterSemicolonInForStatements": true,
+    "javascript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+    "javascript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+    "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": true,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
+    "javascript.format.placeOpenBraceOnNewLineForFunctions": false,
+    "javascript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+    "javascript.suggest.autoImports": true,
+    "javascript.suggest.enabled": true,
+    "javascript.suggest.paths": true,
+    "javascript.suggest.completeFunctionCalls": true,
+    "javascript.preferences.includePackageJsonAutoImports": "auto",
+    "javascript.preferences.importModuleSpecifier": "shortest",
+    "javascript.preferences.quoteStyle": "single",
+
+    // JSON Settings
+    "json.format.enable": true,
+    "json.format.keepLines": false,
+    "json.schemas": [],
+    "json.validate.enable": true,
+
+    // Markdown Settings
+    "markdown.preview.fontSize": 14,
+    "markdown.preview.lineHeight": 1.6,
+    "markdown.preview.fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "markdown.preview.breaks": false,
+    "markdown.preview.linkify": true,
+    "markdown.preview.typographer": true,
+
+    // Live Server Settings
+    "liveServer.settings.donotShowInfoMsg": true,
+    "liveServer.settings.donotVerifyTags": true,
+    "liveServer.settings.port": 5500,
+    "liveServer.settings.root": "/",
+    "liveServer.settings.CustomBrowser": "chrome",
+    "liveServer.settings.AdvanceCustomBrowserCmdLine": "",
+    "liveServer.settings.NoBrowser": false,
+    "liveServer.settings.ignoreFiles": [
+        ".vscode/**",
+        "**/*.scss",
+        "**/*.sass",
+        "**/*.ts"
+    ],
+
+    // Git Settings
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "git.autofetch": true,
+    "git.enableStatusBarSync": true,
+    "git.decorations.enabled": true,
+
+    // Terminal Settings
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.fontFamily": "Monaco, 'Courier New', monospace",
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.cursorStyle": "line",
+    "terminal.integrated.scrollback": 10000,
+
+    // Workbench Settings
+    "workbench.colorTheme": "Default Dark+",
+    "workbench.iconTheme": "vs-seti",
+    "workbench.startupEditor": "welcomePageInEmptyWorkbench",
+    "workbench.editor.enablePreview": false,
+    "workbench.editor.enablePreviewFromQuickOpen": false,
+    "workbench.editor.closeOnFileDelete": true,
+    "workbench.editor.highlightModifiedTabs": true,
+    "workbench.editor.limit.enabled": false,
+    "workbench.editor.tabSizing": "shrink",
+
+    // Explorer Settings
+    "explorer.confirmDelete": false,
+    "explorer.confirmDragAndDrop": false,
+    "explorer.openEditors.visible": 0,
+    "explorer.autoReveal": true,
+    "explorer.sortOrder": "type",
+    "explorer.decorations.colors": true,
+    "explorer.decorations.badges": true,
+
+    // Search Settings
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/tmp": true,
+        "**/coverage": true,
+        "**/dist": true,
+        "**/build": true
+    },
+    "search.useIgnoreFiles": true,
+    "search.useGlobalIgnoreFiles": true,
+
+    // Debug Settings
+    "debug.console.fontSize": 14,
+    "debug.console.fontFamily": "Monaco, 'Courier New', monospace",
+    "debug.console.wordWrap": true,
+    "debug.openDebug": "openOnDebugBreak",
+    "debug.inlineValues": true,
+    "debug.toolBarLocation": "floating",
+
+    // Emmet Settings
+    "emmet.includeLanguages": {
+        "javascript": "javascriptreact",
+        "vue-html": "html",
+        "plaintext": "html"
+    },
+    "emmet.triggerExpansionOnTab": true,
+    "emmet.showExpandedAbbreviation": "always",
+    "emmet.showSuggestionsAsSnippets": true,
+    "emmet.variables": {
+        "lang": "en",
+        "charset": "UTF-8"
+    },
+
+    // Breadcrumbs Settings
+    "breadcrumbs.enabled": true,
+    "breadcrumbs.filePath": "on",
+    "breadcrumbs.symbolPath": "on",
+    "breadcrumbs.symbolSortOrder": "position",
+    "breadcrumbs.useQuickPick": false,
+
+    // Problems Settings
+    "problems.decorations.enabled": true,
+    "problems.showCurrentInStatus": true,
+
+    // Extensions Settings
+    "extensions.autoCheckUpdates": true,
+    "extensions.autoUpdate": false,
+    "extensions.ignoreRecommendations": false,
+    "extensions.showRecommendationsOnlyOnDemand": false
+}
