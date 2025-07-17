@@ -185,147 +185,150 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
             </button>
         </div>
 
-        <!-- Settings Sidebar -->
-        <div class="sidebar" id="settings-sidebar">
+        <!-- Unified Sidebar -->
+        <div class="sidebar unified-sidebar" id="unified-sidebar">
             <div class="sidebar-header">
-                <h2>Settings</h2>
-                <button class="settings-toggle" onclick="toggleSettings()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <div class="main-tabs">
+                    <button class="main-tab-btn active" onclick="switchMainTab('settings')" data-tab="settings">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6"></path>
+                            <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                            <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+                        </svg>
+                        Settings
+                    </button>
+                    <button class="main-tab-btn" onclick="switchMainTab('dashboard')" data-tab="dashboard">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        Dashboard
+                    </button>
+                </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 6L6 18"></path>
                         <path d="M6 6L18 18"></path>
                     </svg>
                 </button>
             </div>
-            <div class="sidebar-content">
-                <div class="settings-group">
-                    <h3>AI Service</h3>
-                    <div class="setting-item">
-                        <label class="setting-label">Service</label>
-                        <select class="setting-input" id="service-select" onchange="switchService()">
-                            <option value="ollama">Ollama (Local)</option>
-                            <option value="groq">Groq (Cloud)</option>
-                        </select>
-                    </div>
-                </div>
 
-                <div class="settings-group" id="ollama-settings">
-                    <h3>Ollama Configuration</h3>
-                    <div class="setting-item">
-                        <label class="setting-label">Server URL</label>
-                        <input type="text" class="setting-input" id="ollama-url" value="http://127.0.0.1:11434">
-                    </div>
-                    <div class="setting-item">
-                        <label class="setting-label">Model</label>
-                        <select class="setting-input" id="model-select">
-                            <option value="llama2">llama2</option>
-                            <option value="mistral">mistral</option>
-                            <option value="codellama">codellama</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="settings-group" id="groq-settings" style="display: none;">
-                    <h3>Groq Configuration</h3>
-                    <div class="setting-item">
-                        <label class="setting-label">API Key</label>
-                        <div class="api-key-container">
-                            <input type="password" class="setting-input api-key-input" id="groq-api-key" placeholder="gsk_...">
-                            <button class="api-validate-btn" id="groq-validate-btn" onclick="validateGroqApiKey()" title="Validate API Key">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                    <path d="M12 1v6m0 6v6"></path>
-                                    <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
-                                    <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
-                                </svg>
-                            </button>
+            <!-- Settings Tab Content -->
+            <div class="main-tab-content active" id="settings-tab">
+                <div class="sidebar-content">
+                    <div class="settings-group">
+                        <h3>AI Service</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">Service</label>
+                            <select class="setting-input" id="service-select" onchange="switchService()">
+                                <option value="ollama">Ollama (Local)</option>
+                                <option value="groq">Groq (Cloud)</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="setting-item">
-                        <label class="setting-label">Model</label>
-                        <select class="setting-input" id="groq-model-select">
-                            <option value="mixtral-8x7b-32768">Mixtral 8x7B (Recommended)</option>
-                            <option value="llama3-70b-8192">Llama 3 70B</option>
-                            <option value="llama3-8b-8192">Llama 3 8B (Fastest)</option>
-                            <option value="gemma-7b-it">Gemma 7B</option>
-                            <option value="llama2-70b-4096">Llama 2 70B</option>
-                        </select>
-                    </div>
-                </div>
 
-                <div class="settings-group">
-                    <h3>General Settings</h3>
-                    <div class="setting-item">
-                        <label class="setting-label">Temperature: <span id="temp-value">0.2</span></label>
-                        <input type="range" class="setting-input" id="temperature" min="0" max="1" step="0.1" value="0.2" oninput="updateTempValue(this.value)">
+                    <div class="settings-group" id="ollama-settings">
+                        <h3>Ollama Configuration</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">Server URL</label>
+                            <input type="text" class="setting-input" id="ollama-url" value="http://127.0.0.1:11434">
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label">Model</label>
+                            <select class="setting-input" id="model-select">
+                                <option value="llama2">llama2</option>
+                                <option value="mistral">mistral</option>
+                                <option value="codellama">codellama</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="setting-item">
-                        <button class="action-btn" onclick="testConnection()" id="test-btn">Test Connection</button>
-                    </div>
-                </div>
 
-                <div class="settings-group">
-                    <h3>Memory & Performance</h3>
-                    <div class="setting-item">
-                        <label class="setting-label">Memory Nodes: <span id="memory-count">0</span></label>
+                    <div class="settings-group" id="groq-settings" style="display: none;">
+                        <h3>Groq Configuration</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">API Key</label>
+                            <div class="api-key-container">
+                                <input type="password" class="setting-input api-key-input" id="groq-api-key" placeholder="gsk_...">
+                                <button class="api-validate-btn" id="groq-validate-btn" onclick="validateGroqApiKey()" title="Validate API Key">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M12 1v6m0 6v6"></path>
+                                        <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                                        <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label">Model</label>
+                            <select class="setting-input" id="groq-model-select">
+                                <option value="mixtral-8x7b-32768">Mixtral 8x7B (Recommended)</option>
+                                <option value="llama3-70b-8192">Llama 3 70B</option>
+                                <option value="llama3-8b-8192">Llama 3 8B (Fastest)</option>
+                                <option value="gemma-7b-it">Gemma 7B</option>
+                                <option value="llama2-70b-4096">Llama 2 70B</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="setting-item">
-                        <button class="action-btn" onclick="exportMemory()">Export Memory</button>
+
+                    <div class="settings-group">
+                        <h3>General Settings</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">Temperature: <span id="temp-value">0.2</span></label>
+                            <input type="range" class="setting-input" id="temperature" min="0" max="1" step="0.1" value="0.2" oninput="updateTempValue(this.value)">
+                        </div>
+                        <div class="setting-item">
+                            <button class="action-btn" onclick="testConnection()" id="test-btn">Test Connection</button>
+                        </div>
                     </div>
-                    <div class="setting-item">
-                        <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+
+                    <div class="settings-group">
+                        <h3>Memory & Performance</h3>
+                        <div class="setting-item">
+                            <label class="setting-label">Memory Nodes: <span id="memory-count">0</span></label>
+                        </div>
+                        <div class="setting-item">
+                            <button class="action-btn" onclick="exportMemory()">Export Memory</button>
+                        </div>
+                        <div class="setting-item">
+                            <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Dashboard Sidebar -->
-        <div class="sidebar dashboard-sidebar" id="dashboard-sidebar">
-            <div class="sidebar-header">
-                <h2>📊 WFGY Dashboard</h2>
-                <div class="dashboard-controls">
-                    <button class="pin-btn" id="pin-dashboard" onclick="toggleDashboardPin()" title="Pin Dashboard">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 9H8L3 14L10 21L15 16V9Z"></path>
-                            <path d="M12 9V2"></path>
+            <!-- Dashboard Tab Content -->
+            <div class="main-tab-content" id="dashboard-tab">
+                <div class="dashboard-tabs">
+                    <button class="tab-btn active" onclick="switchDashboardTab('semantic')" data-tab="semantic">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6"></path>
+                            <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                            <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
                         </svg>
+                        Semantic Core
                     </button>
-                    <button class="settings-toggle" onclick="toggleDashboard()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M18 6L6 18"></path>
-                            <path d="M6 6L18 18"></path>
+                    <button class="tab-btn" onclick="switchDashboardTab('reasoning')" data-tab="reasoning">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                            <path d="M2 17L12 22L22 17"></path>
+                            <path d="M2 12L12 17L22 12"></path>
                         </svg>
+                        Reasoning
+                    </button>
+                    <button class="tab-btn" onclick="switchDashboardTab('operational')" data-tab="operational">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Operational
                     </button>
                 </div>
-            </div>
-            
-            <div class="dashboard-tabs">
-                <button class="tab-btn active" onclick="switchDashboardTab('semantic')" data-tab="semantic">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M12 1v6m0 6v6"></path>
-                        <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
-                        <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
-                    </svg>
-                    Semantic Core
-                </button>
-                <button class="tab-btn" onclick="switchDashboardTab('reasoning')" data-tab="reasoning">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
-                        <path d="M2 17L12 22L22 17"></path>
-                        <path d="M2 12L12 17L22 12"></path>
-                    </svg>
-                    Reasoning
-                </button>
-                <button class="tab-btn" onclick="switchDashboardTab('operational')" data-tab="operational">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    Operational
-                </button>
-            </div>
 
             <div class="dashboard-content">
                 <!-- Semantic Core KPIs Tab -->

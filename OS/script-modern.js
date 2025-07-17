@@ -1452,8 +1452,50 @@ Type any command or ask questions to engage the reasoning system.`);
 
 // Global functions for HTML event handlers
 function toggleSettings() {
-    const sidebar = document.getElementById('settings-sidebar');
+    const sidebar = document.getElementById('unified-sidebar');
     sidebar.classList.toggle('open');
+    
+    // Switch to settings tab if opening
+    if (sidebar.classList.contains('open')) {
+        switchMainTab('settings');
+    }
+}
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('unified-sidebar');
+    sidebar.classList.toggle('open');
+    
+    if (!sidebar.classList.contains('open')) {
+        stopDashboardUpdates();
+    }
+}
+
+function switchMainTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.main-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === tabName) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Update tab contents
+    document.querySelectorAll('.main-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    const targetTab = document.getElementById(tabName + '-tab');
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+    
+    // Start dashboard updates if switching to dashboard
+    if (tabName === 'dashboard') {
+        updateDashboardData();
+        startDashboardUpdates();
+    } else {
+        stopDashboardUpdates();
+    }
 }
 
 function handleKeyPress(event) {
@@ -1841,21 +1883,12 @@ function resetValidateButton() {
 let isDashboardPinned = false;
 
 function toggleDashboard() {
-    const dashboard = document.getElementById('dashboard-sidebar');
-    const settings = document.getElementById('settings-sidebar');
+    const sidebar = document.getElementById('unified-sidebar');
+    sidebar.classList.toggle('open');
     
-    // Close settings if open
-    if (settings.classList.contains('open')) {
-        settings.classList.remove('open');
-    }
-    
-    // Toggle dashboard
-    dashboard.classList.toggle('open');
-    
-    // Update dashboard data when opened
-    if (dashboard.classList.contains('open')) {
-        updateDashboardData();
-        startDashboardUpdates();
+    // Switch to dashboard tab if opening
+    if (sidebar.classList.contains('open')) {
+        switchMainTab('dashboard');
     } else {
         stopDashboardUpdates();
     }
@@ -2114,8 +2147,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Update dashboard periodically if open
     setInterval(() => {
-        const dashboard = document.getElementById('dashboard-sidebar');
-        if (dashboard && dashboard.classList.contains('open')) {
+        const sidebar = document.getElementById('unified-sidebar');
+        const dashboardTab = document.getElementById('dashboard-tab');
+        if (sidebar && sidebar.classList.contains('open') && 
+            dashboardTab && dashboardTab.classList.contains('active')) {
             updateDashboardData();
         }
     }, 5000); // Update every 5 seconds when open
