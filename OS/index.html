@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TXT OS - Modern AI Reasoning System</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-modern.css">
 </head>
 <body>
     <div class="container">
@@ -88,12 +88,13 @@
                     <span class="status-dot" id="memory-status"></span>
                     <span>Memory</span>
                 </div>
-                <button class="dashboard-toggle" onclick="toggleDashboard()">
+                <button class="dashboard-toggle" onclick="toggleDashboard()" title="Dashboard">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M9 9h6v6H9z"></path>
+                        <path d="M9 3v6"></path>
+                        <path d="M15 3v6"></path>
+                        <path d="M21 9H3"></path>
                     </svg>
                 </button>
                 <button class="settings-toggle" onclick="toggleSettings()">
@@ -159,32 +160,29 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 </div>
             </div>
 
-            <!-- Attached Files Display -->
-            <div class="attached-files" id="attached-files"></div>
-
-            <!-- Input Area - WITH CENTERED BUTTON -->
+            <!-- Input Area - TEXT ONLY -->
             <div class="input-section">
-                <div class="input-container">
-                    <textarea 
-                        class="chat-input" 
-                        id="chat-input" 
-                        placeholder="Message TXT OS... (📎 Drop files here)"
-                        rows="1"
-                        onkeydown="handleKeyPress(event)"
-                        oninput="autoResize(this)"
-                        ondrop="handleDrop(event)"
-                        ondragover="handleDragOver(event)"
-                        ondragenter="handleDragEnter(event)"
-                        ondragleave="handleDragLeave(event)"
-                    ></textarea>
-                    <button class="send-button" id="send-button" onclick="sendMessage()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 2L11 13"></path>
-                            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-                        </svg>
-                    </button>
-                </div>
+                <textarea 
+                    class="chat-input" 
+                    id="chat-input" 
+                    placeholder="Message TXT OS..."
+                    rows="1"
+                    onkeydown="handleKeyPress(event)"
+                    oninput="autoResize(this)"
+                    ondrop="handleDrop(event)"
+                    ondragover="handleDragOver(event)"
+                ></textarea>
             </div>
+        </div>
+
+        <!-- Send Button - COMPLETELY OUTSIDE CHAT CONTAINER -->
+        <div class="floating-button-container">
+            <button class="send-button" id="send-button" onclick="sendMessage()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13"></path>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                </svg>
+            </button>
         </div>
 
         <!-- Settings Sidebar -->
@@ -230,7 +228,17 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                     <h3>Groq Configuration</h3>
                     <div class="setting-item">
                         <label class="setting-label">API Key</label>
-                        <input type="password" class="setting-input" id="groq-api-key" placeholder="gsk_...">
+                        <div class="api-key-container">
+                            <input type="password" class="setting-input api-key-input" id="groq-api-key" placeholder="gsk_...">
+                            <button class="api-validate-btn" id="groq-validate-btn" onclick="validateGroqApiKey()" title="Validate API Key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M12 1v6m0 6v6"></path>
+                                    <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                                    <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="setting-item">
                         <label class="setting-label">Model</label>
@@ -253,9 +261,6 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                     <div class="setting-item">
                         <button class="action-btn" onclick="testConnection()" id="test-btn">Test Connection</button>
                     </div>
-                    <div class="setting-item">
-                        <button class="action-btn" onclick="testGroqConnection()" id="test-groq-btn">Test Groq Connection</button>
-                    </div>
                 </div>
 
                 <div class="settings-group">
@@ -274,177 +279,368 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
         </div>
 
         <!-- Dashboard Sidebar -->
-        <div class="sidebar" id="dashboard-sidebar">
+        <div class="sidebar dashboard-sidebar" id="dashboard-sidebar">
             <div class="sidebar-header">
-                <h2>Dashboard</h2>
-                <button class="settings-toggle" onclick="toggleDashboard()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M18 6L6 18"></path>
-                        <path d="M6 6L18 18"></path>
+                <h2>📊 WFGY Dashboard</h2>
+                <div class="dashboard-controls">
+                    <button class="pin-btn" id="pin-dashboard" onclick="toggleDashboardPin()" title="Pin Dashboard">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 9H8L3 14L10 21L15 16V9Z"></path>
+                            <path d="M12 9V2"></path>
+                        </svg>
+                    </button>
+                    <button class="settings-toggle" onclick="toggleDashboard()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6L18 18"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="dashboard-tabs">
+                <button class="tab-btn active" onclick="switchDashboardTab('semantic')" data-tab="semantic">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
                     </svg>
+                    Semantic Core
+                </button>
+                <button class="tab-btn" onclick="switchDashboardTab('reasoning')" data-tab="reasoning">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                        <path d="M2 17L12 22L22 17"></path>
+                        <path d="M2 12L12 17L22 12"></path>
+                    </svg>
+                    Reasoning
+                </button>
+                <button class="tab-btn" onclick="switchDashboardTab('operational')" data-tab="operational">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Operational
                 </button>
             </div>
-            <div class="sidebar-content">
-                <!-- Knowledge Boundary Detection -->
-                <div class="visual-widget">
-                    <div class="widget-header">
-                        <div class="widget-icon">🎯</div>
-                        <div class="widget-title">
-                            <h4>Knowledge Boundary Detection</h4>
-                            <p>High accuracy, low false positives/negatives.</p>
+
+            <div class="dashboard-content">
+                <!-- Semantic Core KPIs Tab -->
+                <div class="tab-content active" id="semantic-tab">
+                    <div class="kpi-grid">
+                        <!-- Delta S (Semantic Uncertainty) -->
+                        <div class="kpi-card primary">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                        <polyline points="3.27,6.96 12,12.01 20.73,6.96"></polyline>
+                                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>ΔS Uncertainty</h4>
+                                    <span class="kpi-subtitle">Semantic confidence</span>
+                                </div>
+                            </div>
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="80" height="80">
+                                    <circle cx="40" cy="40" r="35" stroke="#e2e8f0" stroke-width="6" fill="none"></circle>
+                                    <circle cx="40" cy="40" r="35" stroke="#3b82f6" stroke-width="6" fill="none" 
+                                            stroke-dasharray="220" stroke-dashoffset="220" id="delta-s-ring"></circle>
+                                </svg>
+                                <div class="progress-value" id="delta-s-value">0.000</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="widget-visual">
-                        <div class="boundary-radar">
-                            <div class="radar-ring outer"></div>
-                            <div class="radar-ring middle"></div>
-                            <div class="radar-ring inner"></div>
-                            <div class="radar-center">
-                                <div class="radar-dot red"></div>
-                                <div class="radar-dot yellow"></div>
-                                <div class="radar-dot green"></div>
+
+                        <!-- Lambda Observe (Boundary Threshold) -->
+                        <div class="kpi-card warning">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"></polygon>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>λ_observe Threshold</h4>
+                                    <span class="kpi-subtitle">Boundary trigger</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="lambda-bar"></div>
+                                </div>
+                                <div class="progress-value" id="lambda-value">0.700</div>
+                            </div>
+                        </div>
+
+                        <!-- E_resonance (Logical Resonance) -->
+                        <div class="kpi-card success">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 18V5l12-2v13"></path>
+                                        <circle cx="6" cy="18" r="3"></circle>
+                                        <circle cx="18" cy="16" r="3"></circle>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>E_resonance</h4>
+                                    <span class="kpi-subtitle">Logic coherence</span>
+                                </div>
+                            </div>
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="80" height="80">
+                                    <circle cx="40" cy="40" r="35" stroke="#e2e8f0" stroke-width="6" fill="none"></circle>
+                                    <circle cx="40" cy="40" r="35" stroke="#10b981" stroke-width="6" fill="none" 
+                                            stroke-dasharray="220" stroke-dashoffset="220" id="resonance-ring"></circle>
+                                </svg>
+                                <div class="progress-value" id="resonance-value">0.000</div>
+                            </div>
+                        </div>
+
+                        <!-- Knowledge Boundary Status -->
+                        <div class="kpi-card info">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>Knowledge Boundary</h4>
+                                    <span class="kpi-subtitle">Safety monitoring</span>
+                                </div>
+                            </div>
+                            <div class="status-indicator">
+                                <div class="status-badge" id="boundary-status">INACTIVE</div>
+                                <div class="status-details">
+                                    <div class="status-item">
+                                        <span>Monitors:</span>
+                                        <span id="boundary-monitors">0</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Temperature -->
-                <div class="visual-widget">
-                    <div class="widget-header">
-                        <div class="widget-icon">🌡️</div>
-                        <div class="widget-title">
-                            <h4>Temperature</h4>
-                            <p><span id="temp-display">0.4</span> (to optimize processing speed).</p>
+                <!-- Reasoning Protocols Tab -->
+                <div class="tab-content" id="reasoning-tab">
+                    <div class="kpi-grid">
+                        <!-- BBCR Protocol -->
+                        <div class="kpi-card primary">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="23,4 23,10 17,10"></polyline>
+                                        <polyline points="1,20 1,14 7,14"></polyline>
+                                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>BBCR Protocol</h4>
+                                    <span class="kpi-subtitle">Coherence resolution</span>
+                                </div>
+                            </div>
+                            <div class="protocol-status">
+                                <div class="protocol-indicator" id="bbcr-status">
+                                    <div class="pulse-dot"></div>
+                                    <span>Monitoring</span>
+                                </div>
+                                <div class="protocol-stats">
+                                    <div class="stat">
+                                        <span>Pivots:</span>
+                                        <span id="bbcr-pivots">0</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="widget-visual">
-                        <div class="temperature-gauge">
-                            <div class="gauge-arc"></div>
-                            <div class="gauge-needle"></div>
-                            <div class="gauge-center">
-                                <div class="gauge-value">0.4</div>
-                                <div class="gauge-label">Optimized Speed</div>
+
+                        <!-- Semantic Tree Navigation -->
+                        <div class="kpi-card success">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 20v-4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4"></path>
+                                        <path d="M3 22h18"></path>
+                                        <path d="M7 12V2h10v10"></path>
+                                        <path d="M7 7h10"></path>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>Semantic Tree</h4>
+                                    <span class="kpi-subtitle">Memory navigation</span>
+                                </div>
+                            </div>
+                            <div class="tree-visual">
+                                <div class="tree-nodes" id="tree-nodes">
+                                    <div class="tree-node active">
+                                        <div class="node-dot"></div>
+                                    </div>
+                                    <div class="tree-node">
+                                        <div class="node-dot"></div>
+                                    </div>
+                                    <div class="tree-node">
+                                        <div class="node-dot"></div>
+                                    </div>
+                                </div>
+                                <div class="tree-stats">
+                                    <span>Nodes: <strong id="tree-count">0</strong></span>
+                                    <span>Depth: <strong id="tree-depth">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resonance Amplification -->
+                        <div class="kpi-card warning">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>Resonance Amplification</h4>
+                                    <span class="kpi-subtitle">Pathway strengthening</span>
+                                </div>
+                            </div>
+                            <div class="amplification-visual">
+                                <div class="pathway-flow">
+                                    <div class="flow-line"></div>
+                                    <div class="flow-dots">
+                                        <div class="flow-dot"></div>
+                                        <div class="flow-dot"></div>
+                                        <div class="flow-dot"></div>
+                                    </div>
+                                </div>
+                                <div class="amplification-level" id="amplification-level">1.0x</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Logical Coherence -->
-                <div class="visual-widget">
-                    <div class="widget-header">
-                        <div class="widget-icon">✅</div>
-                        <div class="widget-title">
-                            <h4>Logical Coherence</h4>
-                            <p>Consistent reasoning across all memory nodes.</p>
+                <!-- Operational KPIs Tab -->
+                <div class="tab-content" id="operational-tab">
+                    <div class="kpi-grid">
+                        <!-- Temperature -->
+                        <div class="kpi-card danger">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"></path>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>Temperature</h4>
+                                    <span class="kpi-subtitle">Creativity level</span>
+                                </div>
+                            </div>
+                            <div class="thermometer-container">
+                                <div class="thermometer">
+                                    <div class="thermometer-fill" id="temp-fill"></div>
+                                </div>
+                                <div class="progress-value" id="temp-display">0.2</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="widget-visual">
-                        <div class="coherence-chain">
-                            <div class="chain-node active"></div>
-                            <div class="chain-connector"></div>
-                            <div class="chain-node active"></div>
-                            <div class="chain-connector"></div>
-                            <div class="chain-node active"></div>
-                            <div class="chain-connector"></div>
-                            <div class="chain-node active"></div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Networking -->
-                <div class="visual-widget">
-                    <div class="widget-header">
-                        <div class="widget-icon">🔗</div>
-                        <div class="widget-title">
-                            <h4>Networking</h4>
-                            <p>Reliable network connection for data transfer.</p>
+                        <!-- Hallucination Detection -->
+                        <div class="kpi-card info">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>Hallucination Detection</h4>
+                                    <span class="kpi-subtitle">Truth monitoring</span>
+                                </div>
+                            </div>
+                            <div class="detection-status">
+                                <div class="status-badge" id="hallucination-status">DISABLED</div>
+                                <div class="detection-meter">
+                                    <div class="meter-bar">
+                                        <div class="meter-fill" id="detection-fill"></div>
+                                    </div>
+                                    <span>Confidence</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="widget-visual">
-                        <div class="network-diagram">
-                            <div class="network-center"></div>
-                            <div class="network-node" style="--angle: 0deg;"></div>
-                            <div class="network-node" style="--angle: 51.4deg;"></div>
-                            <div class="network-node" style="--angle: 102.8deg;"></div>
-                            <div class="network-node" style="--angle: 154.2deg;"></div>
-                            <div class="network-node" style="--angle: 205.6deg;"></div>
-                            <div class="network-node" style="--angle: 257deg;"></div>
-                            <div class="network-node" style="--angle: 308.4deg;"></div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Semantic Tree Memory -->
-                <div class="visual-widget">
-                    <div class="widget-header">
-                        <div class="widget-icon">🌳</div>
-                        <div class="widget-title">
-                            <h4>Semantic Tree Memory</h4>
-                            <p><span id="memory-nodes-count">4</span> nodes, each with capacity of 10GB.</p>
+                        <!-- Memory Export -->
+                        <div class="kpi-card success">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7,10 12,15 17,10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>Memory Export</h4>
+                                    <span class="kpi-subtitle">Data availability</span>
+                                </div>
+                            </div>
+                            <div class="export-status">
+                                <div class="status-badge available" id="export-status">AVAILABLE</div>
+                                <div class="export-stats">
+                                    <div class="stat">
+                                        <span>Size:</span>
+                                        <span id="memory-size">0 KB</span>
+                                    </div>
+                                    <div class="stat">
+                                        <span>Nodes:</span>
+                                        <span id="memory-nodes">0</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="widget-visual">
-                        <div class="tree-memory">
-                            <div class="tree-center">Tree</div>
-                            <div class="tree-branch top-left"></div>
-                            <div class="tree-branch top-right"></div>
-                            <div class="tree-branch bottom-left"></div>
-                            <div class="tree-branch bottom-right"></div>
-                            <div class="tree-node tl">10GB</div>
-                            <div class="tree-node tr">10GB</div>
-                            <div class="tree-node bl">10GB</div>
-                            <div class="tree-node br">10GB</div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Security -->
-                <div class="visual-widget">
-                    <div class="widget-header">
-                        <div class="widget-icon">🔒</div>
-                        <div class="widget-title">
-                            <h4>Security</h4>
-                            <p>High-level security measures to protect user data.</p>
+                        <!-- Real-time Activity -->
+                        <div class="kpi-card primary full-width">
+                            <div class="kpi-header">
+                                <div class="kpi-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                                    </svg>
+                                </div>
+                                <div class="kpi-title">
+                                    <h4>Real-time Activity</h4>
+                                    <span class="kpi-subtitle">System performance</span>
+                                </div>
+                            </div>
+                            <div class="activity-chart">
+                                <div class="chart-bars" id="activity-bars">
+                                    <div class="bar" style="height: 20%"></div>
+                                    <div class="bar" style="height: 40%"></div>
+                                    <div class="bar" style="height: 60%"></div>
+                                    <div class="bar" style="height: 30%"></div>
+                                    <div class="bar" style="height: 80%"></div>
+                                    <div class="bar" style="height: 50%"></div>
+                                    <div class="bar" style="height: 70%"></div>
+                                    <div class="bar" style="height: 90%"></div>
+                                </div>
+                                <div class="chart-labels">
+                                    <span>Messages</span>
+                                    <span>Reasoning</span>
+                                    <span>Memory</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="widget-visual">
-                        <div class="security-lock">
-                            <div class="lock-body"></div>
-                            <div class="lock-shackle"></div>
-                            <div class="lock-key">🔑</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Error Handling -->
-                <div class="visual-widget">
-                    <div class="widget-header">
-                        <div class="widget-icon">🛡️</div>
-                        <div class="widget-title">
-                            <h4>Error Handling</h4>
-                            <p>Robust error handling mechanism.</p>
-                        </div>
-                    </div>
-                    <div class="widget-visual">
-                        <div class="error-shield">
-                            <div class="shield-body"></div>
-                            <div class="shield-check">✓</div>
-                            <div class="error-dot" style="--x: 20px; --y: 30px;"></div>
-                            <div class="error-dot" style="--x: 180px; --y: 50px;"></div>
-                            <div class="error-dot" style="--x: 40px; --y: 120px;"></div>
-                            <div class="error-dot" style="--x: 160px; --y: 140px;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Button -->
-                <div class="elaborate-button">
-                    <button onclick="elaborateWithAI()">Elaborate with AI</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script-modern.js"></script>
 </body>
 </html>

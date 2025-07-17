@@ -21,9 +21,9 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
-        # Redirect root to index-modern.html
+        # Redirect root to index.html
         if self.path == '/' or self.path == '':
-            self.path = '/index-modern.html'
+            self.path = '/index.html'
         return super().do_GET()
 
 def main():
@@ -35,7 +35,7 @@ def main():
     with socketserver.TCPServer(("", PORT), handler) as httpd:
         print(f"🚀 TXT OS Server starting...")
         print(f"📍 Serving at: http://localhost:{PORT}")
-        print(f"🎯 Main app: http://localhost:{PORT}/index-modern.html")
+        print(f"🎯 Main app: http://localhost:{PORT}/index.html")
         print(f"⚙️  Settings: Press Ctrl+C to stop server")
         print("-" * 50)
         
