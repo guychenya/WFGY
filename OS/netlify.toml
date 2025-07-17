@@ -1,5 +1,5 @@
 [build]
-  publish = "OS"
+  publish = "."
   command = "echo 'Static site - no build needed'"
 
 [[redirects]]
