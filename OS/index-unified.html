@@ -25,14 +25,14 @@
             </div>
             
             <div class="nav-items">
-                <button class="nav-item active" onclick="switchPane('chat')" data-pane="chat">
+                <button class="nav-item active" data-pane="chat">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
                     <span>Chat</span>
                 </button>
                 
-                <button class="nav-item" onclick="switchPane('history')" data-pane="history">
+                <button class="nav-item" data-pane="history">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <path d="M12 6v6l4 2"></path>
@@ -40,7 +40,7 @@
                     <span>History</span>
                 </button>
                 
-                <button class="nav-item" onclick="switchPane('dashboard')" data-pane="dashboard">
+                <button class="nav-item" data-pane="dashboard">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="20" x2="18" y2="10"></line>
                         <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -49,7 +49,7 @@
                     <span>Dashboard</span>
                 </button>
                 
-                <button class="nav-item" onclick="switchPane('settings')" data-pane="settings">
+                <button class="nav-item" data-pane="settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M12 1v6m0 6v6"></path>
@@ -81,19 +81,19 @@
                 <div class="pane-header">
                     <h2>Chat</h2>
                     <div class="header-actions">
-                        <button class="action-btn" onclick="newChat()" title="New Chat">
+                        <button class="action-btn" data-action="newChat" title="New Chat">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 5v14m-7-7h14"></path>
                             </svg>
                         </button>
-                        <button class="action-btn" onclick="saveChat()" title="Save Chat">
+                        <button class="action-btn" data-action="saveChat" title="Save Chat">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                                 <polyline points="17,21 17,13 7,13 7,21"></polyline>
                                 <polyline points="7,3 7,8 15,8"></polyline>
                             </svg>
                         </button>
-                        <button class="action-btn" onclick="exportChat()" title="Export">
+                        <button class="action-btn" data-action="exportChat" title="Export">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7,10 12,15 17,10"></polyline>
@@ -117,7 +117,7 @@
 
 Type `help` to see all commands, or ask me anything to begin reasoning together.</div>
                                 <div class="message-actions">
-                                    <button class="action-btn" onclick="copyText(this)" title="Copy message">
+                                    <button class="action-btn" data-action="copyText" title="Copy message">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -135,12 +135,8 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                                 id="chat-input" 
                                 placeholder="Message TXT OS..."
                                 rows="1"
-                                onkeydown="handleKeyPress(event)"
-                                oninput="autoResize(this)"
-                                ondrop="handleDrop(event)"
-                                ondragover="handleDragOver(event)"
                             ></textarea>
-                            <button class="send-button" id="send-button" onclick="sendMessage()">
+                            <button class="send-button" id="send-button" data-action="sendMessage">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M22 2L11 13"></path>
                                     <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
@@ -156,7 +152,7 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 <div class="pane-header">
                     <h2>Chat History</h2>
                     <div class="header-actions">
-                        <button class="action-btn" onclick="clearHistory()" title="Clear History">
+                        <button class="action-btn" data-action="clearHistory" title="Clear History">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3,6 5,6 21,6"></polyline>
                                 <path d="M19,6v14a2,2 0,0,1-2,2H7a2,2 0,0,1-2-2V6m3,0V4a2,2 0,0,1,2-2h4a2,2 0,0,1,2,2v2"></path>
@@ -183,7 +179,7 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 <div class="pane-header">
                     <h2>Dashboard</h2>
                     <div class="header-actions">
-                        <button class="action-btn" onclick="refreshDashboard()" title="Refresh">
+                        <button class="action-btn" data-action="refreshDashboard" title="Refresh">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="23,4 23,10 17,10"></polyline>
                                 <polyline points="1,20 1,14 7,14"></polyline>
@@ -195,7 +191,7 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                 
                 <div class="dashboard-content">
                     <div class="dashboard-tabs">
-                        <button class="tab-btn active" onclick="switchDashboardTab('semantic')" data-tab="semantic">
+                        <button class="tab-btn active" data-tab="semantic">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="3"></circle>
                                 <path d="M12 1v6m0 6v6"></path>
@@ -204,7 +200,7 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                             </svg>
                             Semantic Core
                         </button>
-                        <button class="tab-btn" onclick="switchDashboardTab('reasoning')" data-tab="reasoning">
+                        <button class="tab-btn" data-tab="reasoning">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
                                 <path d="M2 17L12 22L22 17"></path>
@@ -212,7 +208,7 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                             </svg>
                             Reasoning
                         </button>
-                        <button class="tab-btn" onclick="switchDashboardTab('operational')" data-tab="operational">
+                        <button class="tab-btn" data-tab="operational">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                                 <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -502,7 +498,7 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                             <label class="setting-label">API Key</label>
                             <div class="api-key-container">
                                 <input type="password" class="setting-input api-key-input" id="groq-api-key" placeholder="gsk_...">
-                                <button class="api-validate-btn" id="groq-validate-btn" onclick="validateGroqApiKey()" title="Validate API Key">
+                                <button class="api-validate-btn" id="groq-validate-btn" data-action="validateGroqApiKey" title="Validate API Key">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="3"></circle>
                                         <path d="M12 1v6m0 6v6"></path>
@@ -531,7 +527,7 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                             <input type="range" class="setting-input" id="temperature" min="0" max="1" step="0.1" value="0.2" oninput="updateTempValue(this.value)">
                         </div>
                         <div class="setting-item">
-                            <button class="action-btn" onclick="testConnection()" id="test-btn">Test Connection</button>
+                            <button class="action-btn" data-action="testConnection" id="test-btn">Test Connection</button>
                         </div>
                     </div>
 
@@ -541,10 +537,10 @@ Type `help` to see all commands, or ask me anything to begin reasoning together.
                             <label class="setting-label">Memory Nodes: <span id="memory-count">0</span></label>
                         </div>
                         <div class="setting-item">
-                            <button class="action-btn" onclick="exportMemory()">Export Memory</button>
+                            <button class="action-btn" data-action="exportMemory">Export Memory</button>
                         </div>
                         <div class="setting-item">
-                            <button class="action-btn" onclick="clearChat()">Clear Chat</button>
+                            <button class="action-btn" data-action="clearChat">Clear Chat</button>
                         </div>
                     </div>
                 </div>

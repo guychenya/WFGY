@@ -59,29 +59,81 @@ class ModernTxtOS {
         document.addEventListener('click', this.handleClick.bind(this));
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
         
-        // Settings changes
-        document.getElementById('ollama-url').addEventListener('change', () => {
-            this.ollamaUrl = document.getElementById('ollama-url').value;
-            this.saveSettings();
+        // Navigation event delegation
+        document.addEventListener('click', (e) => {
+            // Handle nav-item clicks
+            if (e.target.closest('.nav-item')) {
+                e.preventDefault();
+                const navItem = e.target.closest('.nav-item');
+                const paneId = navItem.getAttribute('data-pane');
+                if (paneId) {
+                    this.switchPane(paneId);
+                }
+            }
+            
+            // Handle tab-btn clicks
+            if (e.target.closest('.tab-btn')) {
+                e.preventDefault();
+                const tabBtn = e.target.closest('.tab-btn');
+                const tabId = tabBtn.getAttribute('data-tab');
+                if (tabId) {
+                    this.switchDashboardTab(tabId);
+                }
+            }
+            
+            // Handle action buttons
+            if (e.target.closest('[data-action]')) {
+                e.preventDefault();
+                const button = e.target.closest('[data-action]');
+                const action = button.getAttribute('data-action');
+                this.handleAction(action, button);
+            }
         });
         
-        document.getElementById('model-select').addEventListener('change', () => {
-            this.currentModel = document.getElementById('model-select').value;
-            this.saveSettings();
-        });
+        // Chat input event handling
+        const chatInput = document.getElementById('chat-input');
+        if (chatInput) {
+            chatInput.addEventListener('keydown', (e) => this.handleKeyPress(e));
+            chatInput.addEventListener('input', (e) => this.autoResize(e.target));
+            chatInput.addEventListener('drop', (e) => this.handleDrop(e));
+            chatInput.addEventListener('dragover', (e) => this.handleDragOver(e));
+        }
         
-        document.getElementById('temperature').addEventListener('input', (e) => {
-            this.temperature = parseFloat(e.target.value);
-            this.saveSettings();
-            this.updateDashboardIfOpen();
-        });
+        // Settings changes - with null checks
+        const ollamaUrl = document.getElementById('ollama-url');
+        if (ollamaUrl) {
+            ollamaUrl.addEventListener('change', () => {
+                this.ollamaUrl = ollamaUrl.value;
+                this.saveSettings();
+            });
+        }
+        
+        const modelSelect = document.getElementById('model-select');
+        if (modelSelect) {
+            modelSelect.addEventListener('change', () => {
+                this.currentModel = modelSelect.value;
+                this.saveSettings();
+            });
+        }
+        
+        const temperature = document.getElementById('temperature');
+        if (temperature) {
+            temperature.addEventListener('input', (e) => {
+                this.temperature = parseFloat(e.target.value);
+                this.saveSettings();
+                this.updateDashboardIfOpen();
+            });
+        }
 
         // Service switching
-        document.getElementById('service-select').addEventListener('change', (e) => {
-            this.currentService = e.target.value;
-            this.switchService();
-            this.saveSettings();
-        });
+        const serviceSelect = document.getElementById('service-select');
+        if (serviceSelect) {
+            serviceSelect.addEventListener('change', (e) => {
+                this.currentService = e.target.value;
+                this.switchService();
+                this.saveSettings();
+            });
+        }
 
         // Groq API key
         const groqApiKeyInput = document.getElementById('groq-api-key');
@@ -546,6 +598,103 @@ class ModernTxtOS {
         a.download = `txtost-chat-${new Date().toISOString().slice(0, 10)}.txt`;
         a.click();
         URL.revokeObjectURL(url);
+    }
+
+    // Handle action button clicks
+    handleAction(action, button) {
+        switch(action) {
+            case 'newChat':
+                this.newChat();
+                break;
+            case 'saveChat':
+                this.saveChat();
+                break;
+            case 'exportChat':
+                this.exportChat();
+                break;
+            case 'sendMessage':
+                this.sendMessage();
+                break;
+            case 'clearHistory':
+                this.clearHistory();
+                break;
+            case 'refreshDashboard':
+                this.refreshDashboard();
+                break;
+            case 'testConnection':
+                this.testConnection();
+                break;
+            case 'exportMemory':
+                this.exportMemory();
+                break;
+            case 'clearChat':
+                this.clearChat();
+                break;
+            case 'validateGroqApiKey':
+                this.validateGroqApiKey();
+                break;
+            case 'copyText':
+                this.copyText(button);
+                break;
+            default:
+                console.warn('Unknown action:', action);
+        }
+    }
+
+    // API Key Validation
+    async validateGroqApiKey() {
+        const validateBtn = document.getElementById('groq-validate-btn');
+        const apiKeyInput = document.getElementById('groq-api-key');
+        
+        if (!validateBtn || !apiKeyInput) return;
+        
+        const apiKey = apiKeyInput.value.trim();
+        
+        if (!apiKey) {
+            this.showNotification('Please enter your Groq API key first', 'error');
+            return;
+        }
+        
+        // Update button state to validating
+        validateBtn.disabled = true;
+        validateBtn.classList.remove('valid', 'invalid');
+        validateBtn.classList.add('validating');
+        
+        // Store the current API key temporarily
+        const originalApiKey = this.groqApiKey;
+        this.groqApiKey = apiKey;
+        
+        try {
+            const isValid = await this.testGroqConnection(true);
+            
+            if (isValid) {
+                validateBtn.classList.remove('validating', 'invalid');
+                validateBtn.classList.add('valid');
+                this.showNotification('Groq API key is valid!', 'success');
+                this.saveSettings();
+            } else {
+                throw new Error('Invalid API key');
+            }
+        } catch (error) {
+            validateBtn.classList.remove('validating', 'valid');
+            validateBtn.classList.add('invalid');
+            this.showNotification('Invalid Groq API key', 'error');
+            this.groqApiKey = originalApiKey; // Restore original key
+        } finally {
+            validateBtn.disabled = false;
+        }
+    }
+
+    // Copy text function
+    copyText(button) {
+        const messageContent = button.closest('.message-bubble').querySelector('.message-content');
+        if (messageContent) {
+            navigator.clipboard.writeText(messageContent.textContent).then(() => {
+                this.showNotification('Message copied to clipboard', 'success');
+            }).catch(() => {
+                this.showNotification('Failed to copy message', 'error');
+            });
+        }
     }
 
     // Version display
@@ -1326,19 +1475,29 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         const groqSettings = document.getElementById('groq-settings');
         const statusElement = document.getElementById('ollama-status');
         
-        if (this.currentService === 'groq') {
-            ollamaSettings.style.display = 'none';
-            groqSettings.style.display = 'block';
-            statusElement.textContent = 'Groq';
-        } else {
-            ollamaSettings.style.display = 'block';
-            groqSettings.style.display = 'none';
-            statusElement.textContent = 'Ollama';
+        // Handle settings visibility
+        if (ollamaSettings && groqSettings) {
+            if (this.currentService === 'groq') {
+                ollamaSettings.style.display = 'none';
+                groqSettings.style.display = 'block';
+            } else {
+                ollamaSettings.style.display = 'block';
+                groqSettings.style.display = 'none';
+            }
+        }
+        
+        // Update status element if it exists
+        if (statusElement) {
+            if (this.currentService === 'groq') {
+                statusElement.textContent = 'Groq';
+            } else {
+                statusElement.textContent = 'Ollama';
+            }
+            statusElement.classList.remove('online');
         }
         
         // Reset connection status when switching
         this.isConnected = false;
-        statusElement.classList.remove('online');
         
         // Auto-connect to new service
         setTimeout(() => {
