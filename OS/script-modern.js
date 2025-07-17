@@ -196,6 +196,12 @@ class ModernTxtOS {
             return false;
         }
 
+        // Debug logging
+        console.log(`Testing Groq connection...`);
+        console.log(`API Key length: ${this.groqApiKey.length}`);
+        console.log(`API Key starts with: ${this.groqApiKey.substring(0, 7)}...`);
+        console.log(`Current protocol: ${window.location.protocol}`);
+
         try {
             const response = await fetch(this.groqUrl, {
                 method: 'POST',
@@ -224,8 +230,16 @@ class ModernTxtOS {
             }
         } catch (error) {
             this.isConnected = false;
+            console.error('Groq connection error:', error);
+            
             if (!silent) {
-                this.showNotification(`Groq connection failed: ${error.message}`, 'error');
+                if (window.location.protocol === 'file:') {
+                    this.showNotification('Please serve the app from a web server (not file://). Run: python -m http.server 8000', 'error');
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('Network')) {
+                    this.showNotification('Network error. Check internet connection and API key format.', 'error');
+                } else {
+                    this.showNotification(`Groq connection failed: ${error.message}`, 'error');
+                }
             }
             return false;
         }
@@ -243,6 +257,11 @@ class ModernTxtOS {
             console.warn('Status element not found');
             return false;
         }
+        
+        // Debug logging
+        console.log(`Testing Ollama connection to: ${this.ollamaUrl}`);
+        console.log(`Current protocol: ${window.location.protocol}`);
+        console.log(`Current origin: ${window.location.origin}`);
         
         if (testBtn && !silent) {
             testBtn.disabled = true;
@@ -292,7 +311,13 @@ class ModernTxtOS {
             
             if (testBtn && !silent) testBtn.textContent = 'Failed';
             
-            if (error.name === 'TypeError' && error.message.includes('CORS')) {
+            console.error('Ollama connection error:', error);
+            
+            if (window.location.protocol === 'file:') {
+                if (!silent) {
+                    this.showNotification('Please serve the app from a web server (not file://). Run: python -m http.server 8000', 'error');
+                }
+            } else if (error.name === 'TypeError' || error.message.includes('CORS') || error.message.includes('Network')) {
                 if (!silent) this.showCORSError();
             } else if (!silent) {
                 this.showNotification(`Connection failed: ${error.message}`, 'error');
