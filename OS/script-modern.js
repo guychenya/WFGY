@@ -1452,20 +1452,23 @@ Type any command or ask questions to engage the reasoning system.`);
 
 // Global functions for HTML event handlers
 function toggleSettings() {
-    const sidebar = document.getElementById('unified-sidebar');
+    const sidebar = document.getElementById('settings-sidebar');
     sidebar.classList.toggle('open');
-    
-    // Switch to settings tab if opening
-    if (sidebar.classList.contains('open')) {
-        switchMainTab('settings');
-    }
 }
 
 function toggleSidebar() {
-    const sidebar = document.getElementById('unified-sidebar');
-    sidebar.classList.toggle('open');
+    const sidebar = document.getElementById('dashboard-sidebar');
+    const container = document.querySelector('.container');
     
-    if (!sidebar.classList.contains('open')) {
+    sidebar.classList.toggle('open');
+    container.classList.toggle('sidebar-open');
+    
+    if (sidebar.classList.contains('open')) {
+        // Switch to dashboard tab when opening
+        switchMainTab('dashboard');
+        updateDashboardData();
+        startDashboardUpdates();
+    } else {
         stopDashboardUpdates();
     }
 }

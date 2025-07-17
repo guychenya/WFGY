@@ -460,6 +460,28 @@ body {
 }
 
 /* Sidebar */
+/* Dashboard Sidebar - Positioned on Left */
+.dashboard-sidebar {
+    position: fixed;
+    top: 0;
+    left: -480px;
+    width: 480px;
+    height: 100vh;
+    background: var(--background);
+    border-right: 1px solid var(--border-color);
+    transition: left 0.3s ease;
+    z-index: 200;
+    overflow-y: auto;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-sidebar.open {
+    left: 0;
+}
+
+/* Settings Sidebar - Keep on Right for Settings */
 .sidebar {
     position: fixed;
     top: 0;
@@ -1477,6 +1499,39 @@ body.dark-mode .pin-btn {
 
 .dark-mode .toolbar-icon:hover {
     background: rgba(255, 107, 53, 0.2);
+}
+
+/* Button text styling */
+.button-text {
+    margin-left: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.dashboard-toggle:hover .button-text,
+.settings-toggle:hover .button-text {
+    color: var(--primary-color);
+}
+
+.dashboard-toggle,
+.settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-secondary);
+}
+
+.dashboard-toggle:hover,
+.settings-toggle:hover {
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--primary-color);
 }
 
 .dark-mode .code-block {
