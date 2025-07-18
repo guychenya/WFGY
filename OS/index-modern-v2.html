@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TXT OS - Advanced AI Interface</title>
+    <link rel="stylesheet" href="styles-modern-v2.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Modern Header with Glass Morphism -->
+        <header class="header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M9 9h6v6H9z"></path>
+                    </svg>
+                </div>
+                <h1>TXT OS</h1>
+            </div>
+            
+            <!-- Advanced Status Indicator -->
+            <div class="connection-status" id="connection-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+            
+            <!-- Modern Controls -->
+            <div class="header-controls">
+                <button class="control-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle dark/light theme">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                    </svg>
+                </button>
+                <button class="control-btn" id="settings-toggle" title="Settings" aria-label="Open settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(60 12 12)"></path>
+                        <path d="M12 1v6m0 6v6" transform="rotate(120 12 12)"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Enhanced Main Chat Interface -->
+        <main class="chat-main">
+            <div class="chat-container">
+                <!-- Modern Welcome Section -->
+                <div class="welcome-section" id="welcome-section">
+                    <div class="welcome-content">
+                        <h2>Welcome to TXT OS</h2>
+                        <p>Experience the future of AI interaction with our advanced multi-provider platform. Connect with leading AI models seamlessly.</p>
+                        <div class="quick-start">
+                            <span class="quick-tip">💡 Try asking: "How does AI reasoning work?" or upload a file to analyze</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enhanced Chat Messages Area -->
+                <div class="messages-area" id="messages-area">
+                    <!-- Messages appear here -->
+                </div>
+                
+                <!-- Modern Chat History Sidebar -->
+                <div class="history-sidebar" id="history-sidebar">
+                    <div class="history-header">
+                        <h3>Chat History</h3>
+                        <button class="close-btn" id="close-history" aria-label="Close history">×</button>
+                    </div>
+                    <div class="history-list" id="history-list">
+                        <!-- Chat sessions appear here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Chat Input Section -->
+            <div class="chat-input-section">
+                <div class="input-wrapper">
+                    <input type="file" id="file-input" accept=".txt,.md,.js,.py,.html,.css,.json,.xml,.csv,.pdf,.docx" style="display: none;" multiple>
+                    <button class="file-btn" id="file-btn" aria-label="Upload file" title="Upload files">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10,9 9,9 8,9"></polyline>
+                        </svg>
+                    </button>
+                    <textarea 
+                        class="chat-input" 
+                        id="chat-input"
+                        placeholder="Ask me anything... (Shift+Enter for new line)"
+                        rows="1"
+                        aria-label="Type your message"
+                    ></textarea>
+                    <button class="send-btn" id="send-btn" aria-label="Send message">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13"></path>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="uploaded-files" id="uploaded-files" style="display: none;">
+                    <!-- Uploaded files appear here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Modern Settings Panel -->
+        <aside class="settings-panel" id="settings-panel">
+            <div class="panel-header">
+                <h3>Settings</h3>
+                <button class="close-btn" id="close-settings" aria-label="Close settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="panel-content">
+                <!-- AI Service Selection -->
+                <div class="setting-group">
+                    <label class="setting-label">
+                        AI Service Provider
+                        <select class="setting-select" id="service-select">
+                            <option value="ollama">🏠 Ollama (Local)</option>
+                            <option value="groq">⚡ Groq (Ultra Fast)</option>
+                            <option value="openai">🤖 OpenAI (GPT)</option>
+                            <option value="claude">🧠 Claude (Anthropic)</option>
+                            <option value="gemini">💎 Gemini (Google)</option>
+                            <option value="xai">🚀 X.AI (Grok)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <!-- Service-specific Settings -->
+                <div class="setting-group" id="groq-settings" style="display: none;">
+                    <label class="setting-label">
+                        Groq API Key
+                        <input type="password" class="setting-input" id="groq-api-key" placeholder="Enter your Groq API key">
+                    </label>
+                    <label class="setting-label">
+                        Model
+                        <select class="setting-select" id="groq-model">
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                            <option value="llama2-70b-4096">Llama 2 70B</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div class="setting-group" id="openai-settings" style="display: none;">
+                    <label class="setting-label">
+                        OpenAI API Key
+                        <input type="password" class="setting-input" id="openai-api-key" placeholder="Enter your OpenAI API key">
+                    </label>
+                    <label class="setting-label">
+                        Model
+                        <select class="setting-select" id="openai-model">
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div class="setting-group" id="claude-settings" style="display: none;">
+                    <label class="setting-label">
+                        Claude API Key
+                        <input type="password" class="setting-input" id="claude-api-key" placeholder="Enter your Claude API key">
+                    </label>
+                    <label class="setting-label">
+                        Model
+                        <select class="setting-select" id="claude-model">
+                            <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                            <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                            <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div class="setting-group" id="gemini-settings" style="display: none;">
+                    <label class="setting-label">
+                        Gemini API Key
+                        <input type="password" class="setting-input" id="gemini-api-key" placeholder="Enter your Gemini API key">
+                    </label>
+                    <label class="setting-label">
+                        Model
+                        <select class="setting-select" id="gemini-model">
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-pro">Gemini Pro</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div class="setting-group" id="xai-settings" style="display: none;">
+                    <label class="setting-label">
+                        X.AI API Key
+                        <input type="password" class="setting-input" id="xai-api-key" placeholder="Enter your X.AI API key">
+                    </label>
+                    <label class="setting-label">
+                        Model
+                        <select class="setting-select" id="xai-model">
+                            <option value="grok-beta">Grok Beta</option>
+                        </select>
+                    </label>
+                </div>
+
+                <!-- Response Style -->
+                <div class="setting-group">
+                    <label class="setting-label">
+                        Response Style
+                        <select class="setting-select" id="temperature-preset">
+                            <option value="0.1">🎯 Focused & Precise</option>
+                            <option value="0.3" selected>⚖️ Balanced</option>
+                            <option value="0.7">🎨 Creative & Varied</option>
+                            <option value="1.0">🌟 Highly Creative</option>
+                        </select>
+                    </label>
+                </div>
+
+                <!-- Connection Test -->
+                <div class="setting-actions">
+                    <button class="action-btn primary" id="test-connection">Test Connection</button>
+                </div>
+
+                <!-- Advanced Features -->
+                <details class="advanced-section">
+                    <summary>Advanced Features</summary>
+                    <div class="advanced-content">
+                        <div class="feature-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="show-dashboard">
+                                <span class="toggle-slider"></span>
+                                Performance Dashboard
+                            </label>
+                        </div>
+                        <div class="feature-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="show-history">
+                                <span class="toggle-slider"></span>
+                                Chat History Sidebar
+                            </label>
+                        </div>
+                        <div class="feature-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="auto-save">
+                                <span class="toggle-slider"></span>
+                                Auto-save Conversations
+                            </label>
+                        </div>
+                        <div class="feature-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="streaming-responses">
+                                <span class="toggle-slider"></span>
+                                Streaming Responses
+                            </label>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </aside>
+
+        <!-- Modern Performance Dashboard -->
+        <div class="dashboard-overlay" id="dashboard-overlay" style="display: none;">
+            <div class="dashboard-content">
+                <div class="dashboard-header">
+                    <h3>Performance</h3>
+                    <button class="close-btn" id="close-dashboard" aria-label="Close dashboard">×</button>
+                </div>
+                <div class="metrics-simple">
+                    <div class="metric">
+                        <span class="metric-label">Status</span>
+                        <span class="metric-value" id="system-status">Active</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Provider</span>
+                        <span class="metric-value" id="current-provider">Ollama</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Response Mode</span>
+                        <span class="metric-value" id="response-mode">Balanced</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Messages</span>
+                        <span class="metric-value" id="message-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script-modern-v2.js"></script>
+</body>
+</html>
