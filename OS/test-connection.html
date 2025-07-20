@@ -14,9 +14,9 @@
             resultDiv.innerHTML = 'Testing...';
             
             try {
-                console.log('Testing connection to http://127.0.0.1:11434/api/tags');
+                console.log('Testing connection to /ollama/tags');
                 
-                const response = await fetch('http://127.0.0.1:11434/api/tags', {
+                const response = await fetch('/ollama/tags', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
