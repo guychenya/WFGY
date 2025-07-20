@@ -11,7 +11,7 @@ class ModernTxtOS {
         this.isConnected = false;
         this.messageCount = 0;
         this.typingTimeouts = [];
-        
+
         // Groq API configuration
         this.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
         this.groqModels = [
@@ -21,7 +21,7 @@ class ModernTxtOS {
             'llama3-70b-8192',
             'llama3-8b-8192'
         ];
-        
+
         // WFGY Reasoning Engine state
         this.semanticContext = new Map();
         this.knowledgeBoundary = {
@@ -31,12 +31,12 @@ class ModernTxtOS {
             boundaryActive: false
         };
         this.reasoningChain = [];
-        
+
         // Performance optimizations
         this.messagesCache = new Map();
         this.renderQueue = [];
         this.isRendering = false;
-        
+
         this.init();
     }
 
@@ -45,7 +45,7 @@ class ModernTxtOS {
         this.setupEventListeners();
         this.initializePerformanceOptimizations();
         this.setupUnifiedNavigation();
-        
+
         // Delay auto-connect to ensure DOM is fully loaded
         setTimeout(() => {
             this.autoConnectService();
@@ -58,7 +58,7 @@ class ModernTxtOS {
         // Optimized event delegation
         document.addEventListener('click', this.handleClick.bind(this));
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
-        
+
         // Navigation event delegation
         document.addEventListener('click', (e) => {
             // Handle nav-item clicks
@@ -70,7 +70,7 @@ class ModernTxtOS {
                     this.switchPane(paneId);
                 }
             }
-            
+
             // Handle tab-btn clicks
             if (e.target.closest('.tab-btn')) {
                 e.preventDefault();
@@ -80,7 +80,7 @@ class ModernTxtOS {
                     this.switchDashboardTab(tabId);
                 }
             }
-            
+
             // Handle action buttons
             if (e.target.closest('[data-action]')) {
                 e.preventDefault();
@@ -89,7 +89,7 @@ class ModernTxtOS {
                 this.handleAction(action, button);
             }
         });
-        
+
         // Chat input event handling
         const chatInput = document.getElementById('chat-input');
         if (chatInput) {
@@ -98,7 +98,7 @@ class ModernTxtOS {
             chatInput.addEventListener('drop', (e) => this.handleDrop(e));
             chatInput.addEventListener('dragover', (e) => this.handleDragOver(e));
         }
-        
+
         // Settings changes - with null checks
         const ollamaUrl = document.getElementById('ollama-url');
         if (ollamaUrl) {
@@ -107,7 +107,7 @@ class ModernTxtOS {
                 this.saveSettings();
             });
         }
-        
+
         const modelSelect = document.getElementById('model-select');
         if (modelSelect) {
             modelSelect.addEventListener('change', () => {
@@ -115,7 +115,7 @@ class ModernTxtOS {
                 this.saveSettings();
             });
         }
-        
+
         const temperature = document.getElementById('temperature');
         if (temperature) {
             temperature.addEventListener('input', (e) => {
@@ -181,21 +181,21 @@ class ModernTxtOS {
 
     processRenderQueue() {
         if (this.isRendering || this.renderQueue.length === 0) return;
-        
+
         this.isRendering = true;
-        
+
         // Process up to 5 items from the queue
         const batchSize = Math.min(5, this.renderQueue.length);
         const batch = this.renderQueue.splice(0, batchSize);
-        
+
         batch.forEach(item => {
             if (typeof item === 'function') {
                 item();
             }
         });
-        
+
         this.isRendering = false;
-        
+
         // Continue processing if there are more items
         if (this.renderQueue.length > 0) {
             requestAnimationFrame(() => this.processRenderQueue());
@@ -216,12 +216,15 @@ class ModernTxtOS {
 
     async autoConnectService() {
         const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
+        console.log(`Attempting to auto-connect to ${serviceName}`);
+        console.log(`Ollama URL: ${this.ollamaUrl}`);
+        console.log(`Groq API Key: ${this.groqApiKey ? this.groqApiKey.substring(0, 4) + '...' : 'Not set'}`);
         this.showNotification(`Connecting to ${serviceName}...`, 'info');
-        
+
         // Try to connect automatically with retry logic
         let retryCount = 0;
         const maxRetries = 3;
-        
+
         while (retryCount < maxRetries && !this.isConnected) {
             try {
                 await this.testConnection(true);
@@ -232,13 +235,13 @@ class ModernTxtOS {
             } catch (error) {
                 console.log(`Connection attempt ${retryCount + 1} failed:`, error);
             }
-            
+
             retryCount++;
             if (retryCount < maxRetries) {
                 await this.delay(2000); // Wait 2 seconds before retry
             }
         }
-        
+
         if (!this.isConnected) {
             this.showNotification(`Failed to connect to ${serviceName}. Please check configuration.`, 'error');
             if (this.currentService === 'ollama') {
@@ -262,6 +265,7 @@ class ModernTxtOS {
         console.log(`Current protocol: ${window.location.protocol}`);
 
         try {
+            console.log('testGroqConnection - API Key being sent:', this.groqApiKey);
             const response = await fetch(this.groqUrl, {
                 method: 'POST',
                 headers: {
@@ -290,7 +294,7 @@ class ModernTxtOS {
         } catch (error) {
             this.isConnected = false;
             console.error('Groq connection error:', error);
-            
+
             if (!silent) {
                 if (window.location.protocol === 'file:') {
                     this.showNotification('Please serve the app from a web server (not file://). Run: python -m http.server 8000', 'error');
@@ -308,25 +312,25 @@ class ModernTxtOS {
         if (this.currentService === 'groq') {
             return await this.testGroqConnection(silent);
         }
-        
+
         const statusElement = document.getElementById('ollama-status');
         const testBtn = document.getElementById('test-btn');
-        
+
         if (!statusElement) {
             console.warn('Status element not found');
             return false;
         }
-        
+
         // Debug logging
         console.log(`Testing Ollama connection to: ${this.ollamaUrl}`);
         console.log(`Current protocol: ${window.location.protocol}`);
         console.log(`Current origin: ${window.location.origin}`);
-        
+
         if (testBtn && !silent) {
             testBtn.disabled = true;
             testBtn.textContent = 'Testing...';
         }
-        
+
         try {
             // Enhanced CORS-aware request for Ollama
             const response = await fetch(`${this.ollamaUrl}/api/tags`, {
@@ -339,12 +343,12 @@ class ModernTxtOS {
                 credentials: 'omit',
                 signal: AbortSignal.timeout(8000)
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 this.isConnected = true;
                 statusElement.classList.add('online');
-                
+
                 // Update model list for Ollama
                 const modelSelect = document.getElementById('model-select');
                 if (modelSelect) {
@@ -356,10 +360,10 @@ class ModernTxtOS {
                         modelSelect.appendChild(option);
                     });
                 }
-                
+
                 if (testBtn && !silent) testBtn.textContent = 'Connected';
                 if (!silent) this.showNotification('Connected to Ollama!', 'success');
-                
+
                 return true;
             } else {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -367,11 +371,12 @@ class ModernTxtOS {
         } catch (error) {
             this.isConnected = false;
             statusElement.classList.remove('online');
-            
+
             if (testBtn && !silent) testBtn.textContent = 'Failed';
-            
+
             console.error('Ollama connection error:', error);
-            
+            console.log('Ollama connection error details:', error);
+
             if (window.location.protocol === 'file:') {
                 if (!silent) {
                     this.showNotification('Please serve the app from a web server (not file://). Run: python -m http.server 8000', 'error');
@@ -389,10 +394,10 @@ class ModernTxtOS {
             } else if (!silent) {
                 this.showNotification(`Connection failed: ${error.message}`, 'error');
             }
-            
+
             return false;
         }
-        
+
         if (testBtn && !silent) {
             setTimeout(() => {
                 testBtn.disabled = false;
@@ -410,7 +415,7 @@ class ModernTxtOS {
         // Initialize active pane
         this.currentPane = 'chat';
         this.showPane('chat');
-        
+
         // Set up version display
         this.updateVersionDisplay();
     }
@@ -420,26 +425,26 @@ class ModernTxtOS {
         document.querySelectorAll('.pane').forEach(pane => {
             pane.classList.remove('active');
         });
-        
+
         // Remove active state from all nav items
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
         });
-        
+
         // Show selected pane
         const targetPane = document.getElementById(`${paneId}-pane`);
         if (targetPane) {
             targetPane.classList.add('active');
         }
-        
+
         // Activate corresponding nav item
         const navItem = document.querySelector(`[data-pane="${paneId}"]`);
         if (navItem) {
             navItem.classList.add('active');
         }
-        
+
         this.currentPane = paneId;
-        
+
         // Handle pane-specific initialization
         switch(paneId) {
             case 'dashboard':
@@ -464,18 +469,18 @@ class ModernTxtOS {
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.remove('active');
         });
-        
+
         // Remove active state from all tab buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        
+
         // Show selected tab
         const targetTab = document.getElementById(`${tabId}-tab`);
         if (targetTab) {
             targetTab.classList.add('active');
         }
-        
+
         // Activate corresponding tab button
         const tabBtn = document.querySelector(`[data-tab="${tabId}"]`);
         if (tabBtn) {
@@ -487,18 +492,18 @@ class ModernTxtOS {
     loadChatHistory() {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
-        
+
         // Load from localStorage or create empty list
         const savedHistory = localStorage.getItem('txtosHistory');
         const history = savedHistory ? JSON.parse(savedHistory) : [];
-        
+
         historyList.innerHTML = '';
-        
+
         if (history.length === 0) {
             historyList.innerHTML = '<div class="history-item"><div class="history-preview">No chat history yet</div></div>';
             return;
         }
-        
+
         history.reverse().forEach((session, index) => {
             const item = document.createElement('div');
             item.className = 'history-item';
@@ -514,7 +519,7 @@ class ModernTxtOS {
     saveCurrentChat() {
         const messages = document.querySelectorAll('.message');
         if (messages.length === 0) return;
-        
+
         const chatData = {
             id: Date.now().toString(),
             timestamp: new Date().toLocaleString(),
@@ -524,16 +529,16 @@ class ModernTxtOS {
                 content: msg.querySelector('.message-content').textContent
             }))
         };
-        
+
         const savedHistory = localStorage.getItem('txtosHistory');
         const history = savedHistory ? JSON.parse(savedHistory) : [];
         history.push(chatData);
-        
+
         // Keep only last 50 sessions
         if (history.length > 50) {
             history.shift();
         }
-        
+
         localStorage.setItem('txtosHistory', JSON.stringify(history));
     }
 
@@ -549,11 +554,11 @@ class ModernTxtOS {
     loadHistorySession(session) {
         // Switch to chat pane
         this.switchPane('chat');
-        
+
         // Clear current messages
         const chatContainer = document.getElementById('chat-messages');
         chatContainer.innerHTML = '';
-        
+
         // Load messages from session
         session.messages.forEach(msg => {
             this.addMessage(msg.content, msg.type, false);
@@ -591,7 +596,7 @@ class ModernTxtOS {
             const content = msg.querySelector('.message-content').textContent;
             return `${type}: ${content}`;
         }).join('\n\n');
-        
+
         const blob = new Blob([messages], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -646,28 +651,28 @@ class ModernTxtOS {
     async validateGroqApiKey() {
         const validateBtn = document.getElementById('groq-validate-btn');
         const apiKeyInput = document.getElementById('groq-api-key');
-        
+
         if (!validateBtn || !apiKeyInput) return;
-        
+
         const apiKey = apiKeyInput.value.trim();
-        
+
         if (!apiKey) {
             this.showNotification('Please enter your Groq API key first', 'error');
             return;
         }
-        
+
         // Update button state to validating
         validateBtn.disabled = true;
         validateBtn.classList.remove('valid', 'invalid');
         validateBtn.classList.add('validating');
-        
+
         // Store the current API key temporarily
         const originalApiKey = this.groqApiKey;
         this.groqApiKey = apiKey;
-        
+
         try {
             const isValid = await this.testGroqConnection(true);
-            
+
             if (isValid) {
                 validateBtn.classList.remove('validating', 'invalid');
                 validateBtn.classList.add('valid');
@@ -750,7 +755,7 @@ docker run -d -v ollama:/root/.ollama -p 11434:11434 -e OLLAMA_ORIGINS="*" --nam
 
 This enables cross-origin requests and prevents network blocking.
         `;
-        
+
         this.addMessage('system', instructions);
     }
 
@@ -773,28 +778,28 @@ This enables cross-origin requests and prevents network blocking.
 
 **Note:** Make sure Ollama is running in your dock/menu bar before testing connection.
         `;
-        
+
         this.addMessage('system', guidance);
     }
 
     async attemptOllamaAutoStart() {
         try {
             this.showNotification('Attempting to start Ollama server with CORS...', 'info');
-            
+
             // Try to start Ollama server with CORS via different methods
             const startCommands = [
                 'OLLAMA_ORIGINS="*" ollama serve',
                 'ollama serve --cors-origins="*"',
                 'ollama serve'
             ];
-            
+
             for (const command of startCommands) {
                 try {
                     await this.executeShellCommand(command);
-                    
+
                     // Wait a moment for server to start
                     await this.delay(3000);
-                    
+
                     // Test connection
                     const connected = await this.testConnection(true);
                     if (connected) {
@@ -806,11 +811,11 @@ This enables cross-origin requests and prevents network blocking.
                     continue;
                 }
             }
-            
+
             // If all automatic attempts fail, show instructions
             this.showNotification('Could not auto-start Ollama. Please start manually.', 'warning');
             this.showCORSInstructions();
-            
+
         } catch (error) {
             console.error('Error attempting to auto-start Ollama:', error);
             this.showNotification('Auto-start failed. Please start Ollama manually.', 'error');
@@ -822,7 +827,7 @@ This enables cross-origin requests and prevents network blocking.
         // Note: This is a placeholder for shell command execution
         // In a real web application, this would need to be implemented
         // through a backend service or native bridge
-        
+
         if (window.electronAPI) {
             // If running in Electron
             return await window.electronAPI.executeCommand(command);
@@ -867,14 +872,16 @@ To use Groq's super-fast inference:
 
 Groq provides extremely fast inference with no local setup required!
         `;
-        
+
         this.addMessage('system', instructions);
     }
 
     async sendMessage() {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
-        
+
+        console.log('sendMessage called with message:', message);
+
         if (!message) return;
         if (!this.isConnected) {
             const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
@@ -893,19 +900,19 @@ Groq provides extremely fast inference with no local setup required!
         // Clear input immediately for responsiveness
         input.value = '';
         this.autoResize(input);
-        
+
         // Return focus to input for continuous typing
         input.focus();
-        
+
         // Add user message instantly
         this.addMessage('user', message);
-        
+
         // Perform knowledge boundary analysis
         this.analyzeKnowledgeBoundary(message);
-        
+
         // Show typing indicator
         const typingId = this.showTypingIndicator();
-        
+
         try {
             if (this.currentService === 'groq') {
                 await this.streamGroqResponse(message, typingId);
@@ -913,6 +920,7 @@ Groq provides extremely fast inference with no local setup required!
                 await this.streamResponse(message, typingId);
             }
         } catch (error) {
+            console.error('Error in sendMessage:', error);
             this.removeTypingIndicator(typingId);
             this.showNotification('Error: ' + error.message, 'error');
         } finally {
@@ -927,10 +935,10 @@ Groq provides extremely fast inference with no local setup required!
     async streamResponse(message, typingId) {
         const systemPrompt = this.buildSystemPrompt();
         const fullMessage = `${systemPrompt}\n\nUser: ${message}`;
-        
+
         const response = await fetch(`${this.ollamaUrl}/api/generate`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
@@ -944,26 +952,29 @@ Groq provides extremely fast inference with no local setup required!
             })
         });
 
-        if (!response.ok) throw new Error('Request failed');
-        
+        if (!response.ok) {
+            console.error('streamResponse - Request failed with status:', response.status);
+            throw new Error('Request failed');
+        }
+
         // Remove typing indicator
         this.removeTypingIndicator(typingId);
-        
+
         // Create streaming message
         const messageId = this.addStreamingMessage('assistant');
-        
+
         // Stream response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = '';
-        
+
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            
+
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
-            
+
             for (const line of lines) {
                 if (line.trim()) {
                     try {
@@ -978,26 +989,27 @@ Groq provides extremely fast inference with no local setup required!
                 }
             }
         }
-        
+
         // Finalize message
         this.finalizeStreamingMessage(messageId);
-        
+
         // Update memory
         this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
-        
+
         // Update dashboard if open
         this.updateDashboardIfOpen();
     }
 
     async streamGroqResponse(message, typingId) {
         const systemPrompt = this.buildSystemPrompt();
-        
+
         const response = await fetch(this.groqUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${this.groqApiKey}`,
                 'Content-Type': 'application/json',
+                'X-Custom-API-Key': this.groqApiKey // Added custom header
             },
             body: JSON.stringify({
                 model: this.groqModel,
@@ -1011,7 +1023,10 @@ Groq provides extremely fast inference with no local setup required!
             })
         });
 
+        console.log('streamGroqResponse - Request headers:', response.headers); // Log headers
+
         if (!response.ok) {
+            console.error('streamGroqResponse - Request failed with status:', response.status);
             if (response.status === 503) {
                 throw new Error('Groq service unavailable. Check groqstatus.com');
             } else if (response.status === 401) {
@@ -1020,20 +1035,20 @@ Groq provides extremely fast inference with no local setup required!
                 throw new Error(`Groq API error: ${response.status}`);
             }
         }
-        
+
         // Remove typing indicator
         this.removeTypingIndicator(typingId);
-        
+
         const data = await response.json();
         const fullResponse = data.choices[0].message.content;
-        
+
         // Create and show response message
         const messageId = this.addMessage('assistant', fullResponse);
-        
+
         // Update memory
         this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
-        
+
         // Update dashboard if open
         this.updateDashboardIfOpen();
     }
@@ -1041,16 +1056,16 @@ Groq provides extremely fast inference with no local setup required!
     addMessage(type, content) {
         const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const messageElement = this.createMessageElement(type, content, messageId);
-        
+
         const container = document.getElementById('chat-messages');
         container.appendChild(messageElement);
-        
+
         // Smooth scroll to bottom
         this.smoothScrollToBottom();
-        
+
         // Add to observer
         this.messageObserver.observe(messageElement);
-        
+
         this.messageCount++;
         return messageId;
     }
@@ -1059,13 +1074,13 @@ Groq provides extremely fast inference with no local setup required!
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
         messageDiv.id = messageId;
-        
+
         const avatarMap = {
             'user': '👤',
             'assistant': '🏛️',
             'system': '⚙️'
         };
-        
+
         messageDiv.innerHTML = `
             <div class="message-avatar">${avatarMap[type]}</div>
             <div class="message-bubble">
@@ -1106,7 +1121,7 @@ Groq provides extremely fast inference with no local setup required!
                 </div>
             </div>
         `;
-        
+
         return messageDiv;
     }
 
@@ -1117,39 +1132,39 @@ Groq provides extremely fast inference with no local setup required!
             div.textContent = text;
             return div.innerHTML;
         };
-        
+
         // Process content safely
         let processedContent = escapeHtml(content);
-        
+
         // Handle code blocks first (multiline)
         processedContent = processedContent.replace(/```([\s\S]*?)```/g, (match, code) => {
             return `<pre class="code-block"><code>${code.trim()}</code></pre>`;
         });
-        
+
         // Handle inline code
         processedContent = processedContent.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-        
+
         // Handle line breaks
         processedContent = processedContent.replace(/\n/g, '<br>');
-        
+
         // Handle markdown-style formatting
         processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         processedContent = processedContent.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        
+
         return processedContent;
     }
 
     addStreamingMessage(type) {
         const messageId = `stream-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const messageElement = this.createMessageElement(type, '', messageId);
-        
+
         // Add streaming indicator
         const content = messageElement.querySelector('.message-content');
         content.innerHTML = '<div class="streaming-cursor">|</div>';
-        
+
         const container = document.getElementById('chat-messages');
         container.appendChild(messageElement);
-        
+
         this.smoothScrollToBottom();
         return messageId;
     }
@@ -1157,10 +1172,10 @@ Groq provides extremely fast inference with no local setup required!
     updateStreamingMessage(messageId, text) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         content.innerHTML = this.formatContent(text) + '<div class="streaming-cursor">|</div>';
-        
+
         // Auto-scroll if user is at bottom
         this.smoothScrollToBottom();
     }
@@ -1168,11 +1183,11 @@ Groq provides extremely fast inference with no local setup required!
     finalizeStreamingMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const cursor = content.querySelector('.streaming-cursor');
         if (cursor) cursor.remove();
-        
+
         messageElement.classList.add('finalized');
     }
 
@@ -1181,7 +1196,7 @@ Groq provides extremely fast inference with no local setup required!
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
         typingDiv.className = 'typing-indicator';
-        
+
         typingDiv.innerHTML = `
             <div class="message-avatar">🏛️</div>
             <div class="typing-bubble">
@@ -1193,10 +1208,10 @@ Groq provides extremely fast inference with no local setup required!
                 <span>Thinking...</span>
             </div>
         `;
-        
+
         const container = document.getElementById('chat-messages');
         container.appendChild(typingDiv);
-        
+
         this.smoothScrollToBottom();
         return typingId;
     }
@@ -1220,14 +1235,14 @@ Groq provides extremely fast inference with no local setup required!
     async copyMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const text = content.textContent;
-        
+
         try {
             await navigator.clipboard.writeText(text);
             this.showNotification('Copied to clipboard!', 'success');
-            
+
             // Visual feedback
             const copyBtn = messageElement.querySelector('.copy-btn');
             copyBtn.innerHTML = `
@@ -1236,7 +1251,7 @@ Groq provides extremely fast inference with no local setup required!
                 </svg>
                 Copied!
             `;
-            
+
             setTimeout(() => {
                 copyBtn.innerHTML = `
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1254,12 +1269,12 @@ Groq provides extremely fast inference with no local setup required!
     toggleMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         messageElement.classList.toggle('minimized');
-        
+
         const minimizeBtn = messageElement.querySelector('.minimize-btn');
         const isMinimized = messageElement.classList.contains('minimized');
-        
+
         minimizeBtn.innerHTML = isMinimized ? `
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M6 9L12 15L18 9"></path>
@@ -1276,9 +1291,9 @@ Groq provides extremely fast inference with no local setup required!
     handleClick(event) {
         const target = event.target.closest('button');
         if (!target) return;
-        
+
         const messageId = target.dataset.messageId;
-        
+
         if (target.classList.contains('copy-btn')) {
             this.copyMessage(messageId);
         } else if (target.classList.contains('minimize-btn')) {
@@ -1302,19 +1317,19 @@ Groq provides extremely fast inference with no local setup required!
     downloadMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const text = content.textContent;
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        
+
         const blob = new Blob([text], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `message-${timestamp}.txt`;
         a.click();
-        
+
         URL.revokeObjectURL(url);
         this.showNotification('Message downloaded!', 'success');
     }
@@ -1322,10 +1337,10 @@ Groq provides extremely fast inference with no local setup required!
     shareMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const text = content.textContent;
-        
+
         if (navigator.share) {
             navigator.share({
                 title: 'TXT OS Message',
@@ -1347,20 +1362,20 @@ Groq provides extremely fast inference with no local setup required!
     navigateToMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
-        messageElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+
+        messageElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
         });
-        
+
         // Highlight the message briefly
         messageElement.style.background = 'rgba(255, 107, 53, 0.1)';
         messageElement.style.transition = 'background 0.3s ease';
-        
+
         setTimeout(() => {
             messageElement.style.background = '';
         }, 1500);
-        
+
         this.showNotification('Navigated to message', 'success');
     }
 
@@ -1368,15 +1383,15 @@ Groq provides extremely fast inference with no local setup required!
         const notification = document.createElement('div');
         notification.className = 'copy-feedback';
         notification.textContent = message;
-        
+
         if (type === 'error') {
             notification.style.background = '#ef4444';
         } else if (type === 'success') {
             notification.style.background = '#10b981';
         }
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.remove();
         }, 2000);
@@ -1386,7 +1401,7 @@ Groq provides extremely fast inference with no local setup required!
         const boundaryStatus = this.knowledgeBoundary.boundaryActive ? 'ACTIVE' : 'INACTIVE';
         const deltaS = this.knowledgeBoundary.deltaS.toFixed(3);
         const eResonance = this.knowledgeBoundary.eResonance.toFixed(3);
-        
+
         return `You are TXT OS v2.0, powered by the WFGY Reasoning Engine - an advanced semantic operating system.
 
 WFGY CORE PARAMETERS:
@@ -1423,12 +1438,12 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             eResonance: this.knowledgeBoundary.eResonance,
             semanticWeight: Math.random() * 0.5 + 0.5 // Simple semantic weighting
         };
-        
+
         this.memoryTree.push(memoryNode);
-        
+
         // Extract semantic keys for context mapping
         this.extractSemanticKeys(input, output);
-        
+
         // Update reasoning chain
         this.reasoningChain.push({
             step: this.reasoningChain.length + 1,
@@ -1436,12 +1451,12 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             resonance: this.knowledgeBoundary.eResonance,
             timestamp: Date.now()
         });
-        
+
         // Keep memory manageable
         if (this.memoryTree.length > 100) {
             this.memoryTree = this.memoryTree.slice(-50);
         }
-        
+
         if (this.reasoningChain.length > 50) {
             this.reasoningChain = this.reasoningChain.slice(-25);
         }
@@ -1451,7 +1466,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         // Simple keyword extraction for semantic context
         const text = (input + ' ' + output).toLowerCase();
         const words = text.match(/\b\w{4,}\b/g) || [];
-        
+
         words.forEach(word => {
             if (this.semanticContext.has(word)) {
                 this.semanticContext.set(word, this.semanticContext.get(word) + 1);
@@ -1459,7 +1474,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
                 this.semanticContext.set(word, 1);
             }
         });
-        
+
         // Keep semantic context manageable
         if (this.semanticContext.size > 200) {
             const sorted = [...this.semanticContext.entries()].sort((a, b) => b[1] - a[1]);
@@ -1472,7 +1487,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         if (counter) {
             counter.textContent = this.memoryTree.length;
         }
-        
+
         const memoryStatus = document.getElementById('memory-status');
         if (memoryStatus) {
             memoryStatus.classList.toggle('online', this.memoryTree.length > 0);
@@ -1483,7 +1498,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         const ollamaSettings = document.getElementById('ollama-settings');
         const groqSettings = document.getElementById('groq-settings');
         const statusElement = document.getElementById('ollama-status');
-        
+
         // Handle settings visibility
         if (ollamaSettings && groqSettings) {
             if (this.currentService === 'groq') {
@@ -1494,7 +1509,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
                 groqSettings.style.display = 'none';
             }
         }
-        
+
         // Update status element if it exists
         if (statusElement) {
             if (this.currentService === 'groq') {
@@ -1504,10 +1519,10 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             }
             statusElement.classList.remove('online');
         }
-        
+
         // Reset connection status when switching
         this.isConnected = false;
-        
+
         // Auto-connect to new service
         setTimeout(() => {
             this.autoConnectService();
@@ -1535,24 +1550,24 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             this.currentModel = settings.currentModel || this.currentModel;
             this.groqModel = settings.groqModel || this.groqModel;
             this.temperature = settings.temperature || this.temperature;
-            
+
             // Update UI
             document.getElementById('ollama-url').value = this.ollamaUrl;
             document.getElementById('model-select').value = this.currentModel;
             document.getElementById('service-select').value = this.currentService;
             document.getElementById('temperature').value = this.temperature;
             document.getElementById('temp-value').textContent = this.temperature;
-            
+
             const groqApiKeyInput = document.getElementById('groq-api-key');
             if (groqApiKeyInput) {
                 groqApiKeyInput.value = this.groqApiKey;
             }
-            
+
             const groqModelSelect = document.getElementById('groq-model-select');
             if (groqModelSelect) {
                 groqModelSelect.value = this.groqModel;
             }
-            
+
             // Apply service switching UI
             this.switchService();
         }
@@ -1589,15 +1604,15 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             knowledgeBoundary: this.knowledgeBoundary,
             reasoningChain: this.reasoningChain
         };
-        
+
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `txt-os-memory-${Date.now()}.json`;
         a.click();
-        
+
         URL.revokeObjectURL(url);
         this.showNotification('Memory exported!', 'success');
     }
@@ -1605,37 +1620,37 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
     // WFGY Reasoning Engine Methods
     handleSpecialCommand(message) {
         const command = message.toLowerCase().trim();
-        
+
         if (command === 'hello world') {
             this.initializeWFGYSystem();
             return true;
         }
-        
+
         if (command === 'kbtest' || command.startsWith('kbtest ')) {
             this.performKnowledgeBoundaryTest(command);
             return true;
         }
-        
+
         if (command === 'tree' || command === 'memory tree') {
             this.displaySemanticTree();
             return true;
         }
-        
+
         if (command === 'clear boundary') {
             this.resetKnowledgeBoundary();
             return true;
         }
-        
+
         if (command === 'load helloworld' || command === 'helloworld') {
             this.loadHelloWorldSystem();
             return true;
         }
-        
+
         if (command === 'help' || command === '?') {
             this.showHelp();
             return true;
         }
-        
+
         return false;
     }
 
@@ -1653,7 +1668,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
 - \`clear boundary\` - Reset boundary analysis
 
 Ready for advanced semantic reasoning.`);
-        
+
         this.knowledgeBoundary.boundaryActive = true;
         this.showNotification('WFGY System Initialized', 'success');
         this.updateDashboardIfOpen();
@@ -1668,16 +1683,16 @@ Ready for advanced semantic reasoning.`);
             "How fast does silence travel through emptiness?",
             "What is the molecular structure of a forgotten dream?"
         ];
-        
+
         const randomQuestion = testQuestions[Math.floor(Math.random() * testQuestions.length)];
-        
+
         // Simulate boundary detection analysis
         const deltaS = Math.random() * 0.8 + 0.2; // Random high uncertainty
         const riskLevel = deltaS > 0.6 ? 'HIGH' : deltaS > 0.3 ? 'MEDIUM' : 'LOW';
-        
+
         this.knowledgeBoundary.deltaS = deltaS;
         this.knowledgeBoundary.eResonance = Math.random() * 0.5;
-        
+
         this.addMessage('system', `🛡️ **Knowledge Boundary Test**
 
 **Test Query:** "${randomQuestion}"
@@ -1690,44 +1705,44 @@ Ready for advanced semantic reasoning.`);
 
 **Boundary Status:** ${deltaS > this.knowledgeBoundary.lambdaObserve ? '🚨 BOUNDARY EXCEEDED' : '✅ WITHIN SAFE LIMITS'}
 
-${deltaS > this.knowledgeBoundary.lambdaObserve ? 
-'**Recommendation:** Semantic pivot required. Question contains undefined conceptual mappings.' : 
+${deltaS > this.knowledgeBoundary.lambdaObserve ?
+'**Recommendation:** Semantic pivot required. Question contains undefined conceptual mappings.' :
 '**Recommendation:** Query is within established knowledge boundaries.'}`);
-        
+
         this.updateBoundaryDisplay();
     }
 
     analyzeKnowledgeBoundary(message) {
         if (!this.knowledgeBoundary.boundaryActive) return;
-        
+
         // Simple heuristic for uncertainty detection
         const uncertaintyMarkers = [
             'exact', 'precisely', 'definitely', 'absolute', 'perfect',
             'infinite', 'impossible', 'never', 'always', 'everything',
             'nothing', 'beyond', 'transcendent', 'mystical'
         ];
-        
+
         const abstractMarkers = [
             'soul', 'consciousness', 'love', 'meaning', 'purpose',
             'existence', 'reality', 'truth', 'beauty', 'justice'
         ];
-        
+
         let uncertaintyScore = 0;
         const words = message.toLowerCase().split(/\s+/);
-        
+
         words.forEach(word => {
             if (uncertaintyMarkers.includes(word)) uncertaintyScore += 0.3;
             if (abstractMarkers.includes(word)) uncertaintyScore += 0.2;
         });
-        
+
         // Question complexity analysis
         const questionWords = ['what', 'how', 'why', 'when', 'where', 'which'];
         const hasQuestion = questionWords.some(q => message.toLowerCase().includes(q));
         if (hasQuestion) uncertaintyScore += 0.1;
-        
+
         this.knowledgeBoundary.deltaS = Math.min(uncertaintyScore, 1.0);
         this.knowledgeBoundary.eResonance = 1 - uncertaintyScore;
-        
+
         this.updateBoundaryDisplay();
         this.updateDashboardIfOpen();
     }
@@ -1755,21 +1770,21 @@ ${deltaS > this.knowledgeBoundary.lambdaObserve ?
             this.addMessage('system', '🌲 **Semantic Tree Empty**\n\nNo memory nodes have been created yet. Start a conversation to build the semantic tree.');
             return;
         }
-        
+
         let treeDisplay = '🌲 **Semantic Memory Tree**\n\n';
-        
+
         this.memoryTree.forEach((node, index) => {
             const depth = Math.floor(index / 3); // Simple depth calculation
             const indent = '  '.repeat(depth);
             const branch = index % 3 === 0 ? '├─' : index % 3 === 1 ? '│ ├─' : '│ └─';
-            
+
             treeDisplay += `${indent}${branch} Node ${node.id}\n`;
             treeDisplay += `${indent}   Input: "${node.input.substring(0, 40)}${node.input.length > 40 ? '...' : ''}"\n`;
             treeDisplay += `${indent}   Resonance: ${(Math.random() * 0.8 + 0.2).toFixed(3)}\n\n`;
         });
-        
+
         treeDisplay += `\n**Tree Statistics:**\n- Total Nodes: ${this.memoryTree.length}\n- Depth Levels: ${Math.ceil(this.memoryTree.length / 3)}\n- Semantic Coherence: ${(0.8 + Math.random() * 0.2).toFixed(3)}`;
-        
+
         this.addMessage('system', treeDisplay);
     }
 
@@ -1801,7 +1816,7 @@ Establishing resonance pathways...
 **Note:** This simulates the HelloWorld.txt integration. In a full implementation, this would load the actual TXT file contents and parse the WFGY reasoning structures.
 
 Ready for enhanced semantic reasoning with HelloWorld protocols.`);
-        
+
         // Enhance system parameters
         this.knowledgeBoundary.lambdaObserve = 0.8; // Higher threshold for HelloWorld mode
         this.knowledgeBoundary.boundaryActive = true;
@@ -1844,10 +1859,10 @@ function toggleSettings() {
 function toggleSidebar() {
     const sidebar = document.getElementById('dashboard-sidebar');
     const container = document.querySelector('.container');
-    
+
     sidebar.classList.toggle('open');
     container.classList.toggle('sidebar-open');
-    
+
     if (sidebar.classList.contains('open')) {
         // Switch to dashboard tab when opening
         switchMainTab('dashboard');
@@ -1866,17 +1881,17 @@ function switchMainTab(tabName) {
             btn.classList.add('active');
         }
     });
-    
+
     // Update tab contents
     document.querySelectorAll('.main-tab-content').forEach(content => {
         content.classList.remove('active');
     });
-    
+
     const targetTab = document.getElementById(tabName + '-tab');
     if (targetTab) {
         targetTab.classList.add('active');
     }
-    
+
     // Start dashboard updates if switching to dashboard
     if (tabName === 'dashboard') {
         updateDashboardData();
@@ -1931,7 +1946,7 @@ function switchService() {
 function newChat() {
     txtOS.clearChat();
     txtOS.showNotification('New chat started', 'info');
-    
+
     // Focus the input for immediate typing
     setTimeout(() => {
         const input = document.getElementById('chat-input');
@@ -1951,7 +1966,7 @@ function saveChat() {
         service: txtOS.currentService,
         model: txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel
     };
-    
+
     const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1959,7 +1974,7 @@ function saveChat() {
     a.download = `chat-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    
+
     txtOS.showNotification('Chat saved successfully!', 'success');
 }
 
@@ -1971,14 +1986,14 @@ function exportChat() {
             return `${type}: ${content}`;
         })
         .join('\n\n');
-    
+
     const exportData = `TXT OS Chat Export
 Generated: ${new Date().toLocaleString()}
 Service: ${txtOS.currentService === 'groq' ? 'Groq' : 'Ollama'}
 Model: ${txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel}
 
 ${messages}`;
-    
+
     const blob = new Blob([exportData], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1986,7 +2001,7 @@ ${messages}`;
     a.download = `chat-export-${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    
+
     txtOS.showNotification('Chat exported successfully!', 'success');
 }
 
@@ -1997,7 +2012,7 @@ function openFile() {
     input.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -2026,10 +2041,10 @@ function openFile() {
 function toggleSearch() {
     const searchQuery = prompt('Search in chat history:');
     if (!searchQuery) return;
-    
+
     const messages = document.querySelectorAll('.message-content');
     let found = false;
-    
+
     messages.forEach(msg => {
         const parent = msg.closest('.message');
         if (msg.textContent.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -2041,7 +2056,7 @@ function toggleSearch() {
             }, 3000);
         }
     });
-    
+
     if (found) {
         txtOS.showNotification(`Found "${searchQuery}" in chat`, 'success');
     } else {
@@ -2062,7 +2077,7 @@ function showHelp() {
 **Toolbar Icons:**
 - ➕ **New Chat** - Start a fresh conversation
 - 💾 **Save Chat** - Export chat as JSON file
-- 📥 **Export** - Export chat as text file  
+- 📥 **Export** - Export chat as text file
 - 📁 **Open File** - Load chat or text files
 - 🔍 **Search** - Find text in current chat
 - 🌙 **Dark Mode** - Toggle dark/light theme
@@ -2080,7 +2095,7 @@ function showHelp() {
 
 **Special Commands:**
 - \`hello world\` - Initialize WFGY system
-- \`kbtest\` - Test knowledge boundaries  
+- \`kbtest\` - Test knowledge boundaries
 - \`tree\` - View semantic memory tree
 - \`help\` - Show command help
 
@@ -2091,7 +2106,7 @@ Type any question to start reasoning with TXT OS!`);
 function handleDragOver(event) {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-    
+
     // Add visual feedback
     event.target.style.borderColor = 'var(--primary-color)';
     event.target.style.backgroundColor = 'rgba(255, 107, 53, 0.1)';
@@ -2099,14 +2114,14 @@ function handleDragOver(event) {
 
 function handleDrop(event) {
     event.preventDefault();
-    
+
     // Remove visual feedback
     event.target.style.borderColor = 'var(--border-color)';
     event.target.style.backgroundColor = 'var(--background)';
-    
+
     const files = event.dataTransfer.files;
     const text = event.dataTransfer.getData('text/plain');
-    
+
     if (files.length > 0) {
         // Handle file drops
         for (let file of files) {
@@ -2136,9 +2151,9 @@ const APP_VERSION = {
     major: 2,
     minor: 2,
     patch: 0,
-    updated: new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
+    updated: new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
@@ -2149,11 +2164,11 @@ const APP_VERSION = {
 function updateVersionDisplay() {
     const versionText = document.querySelector('.version-text');
     const versionDate = document.getElementById('version-date');
-    
+
     if (versionText) {
         versionText.textContent = `v${APP_VERSION.major}.${APP_VERSION.minor}`;
     }
-    
+
     if (versionDate) {
         versionDate.textContent = APP_VERSION.updated;
     }
@@ -2162,7 +2177,7 @@ function updateVersionDisplay() {
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     window.txtOS = new ModernTxtOS();
-    
+
     // Global functions for unified navigation
     window.switchPane = (paneId) => window.txtOS.switchPane(paneId);
     window.switchDashboardTab = (tabId) => window.txtOS.switchDashboardTab(tabId);
@@ -2171,7 +2186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.exportChat = () => window.txtOS.exportChat();
     window.clearHistory = () => window.txtOS.clearHistory();
     window.refreshDashboard = () => window.txtOS.refreshDashboard();
-    
+
 });
 
 // Initialize dark mode
@@ -2189,7 +2204,7 @@ style.textContent = `
         color: var(--primary-color);
         font-weight: bold;
     }
-    
+
     @keyframes blink {
         0%, 50% { opacity: 1; }
         51%, 100% { opacity: 0; }
@@ -2202,50 +2217,50 @@ async function validateGroqApiKey() {
     const validateBtn = document.getElementById('groq-validate-btn');
     const apiKeyInput = document.getElementById('groq-api-key');
     const apiKey = apiKeyInput.value.trim();
-    
+
     if (!apiKey) {
         txtOS.showNotification('Please enter your Groq API key first', 'error');
         return;
     }
-    
+
     // Update button state to validating
     validateBtn.disabled = true;
     validateBtn.classList.remove('valid', 'invalid');
     validateBtn.classList.add('validating');
-    
+
     // Store the current API key temporarily
     const originalApiKey = txtOS.groqApiKey;
     txtOS.groqApiKey = apiKey;
-    
+
     try {
         const isValid = await txtOS.testGroqConnection(true); // Silent test
-        
+
         if (isValid) {
             // Success state
             validateBtn.classList.remove('validating');
             validateBtn.classList.add('valid');
-            
+
             // Update the icon to checkmark
             validateBtn.innerHTML = `
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20,6 9,17 4,12"></polyline>
                 </svg>
             `;
-            
+
             // Save the validated API key
             txtOS.saveSettings();
             txtOS.showNotification('API key is valid!', 'success');
-            
+
             // Reset button after 3 seconds
             setTimeout(() => {
                 resetValidateButton();
             }, 3000);
-            
+
         } else {
             // Invalid state
             validateBtn.classList.remove('validating');
             validateBtn.classList.add('invalid');
-            
+
             // Update the icon to X
             validateBtn.innerHTML = `
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2253,33 +2268,33 @@ async function validateGroqApiKey() {
                     <path d="M6 6L18 18"></path>
                 </svg>
             `;
-            
+
             // Restore original API key
             txtOS.groqApiKey = originalApiKey;
             txtOS.showNotification('Invalid API key. Please check and try again.', 'error');
-            
+
             // Reset button after 3 seconds
             setTimeout(() => {
                 resetValidateButton();
             }, 3000);
         }
-        
+
     } catch (error) {
         // Error state
         validateBtn.classList.remove('validating');
         validateBtn.classList.add('invalid');
-        
+
         validateBtn.innerHTML = `
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 6L6 18"></path>
                 <path d="M6 6L18 18"></path>
             </svg>
         `;
-        
+
         // Restore original API key
         txtOS.groqApiKey = originalApiKey;
         txtOS.showNotification('Error validating API key: ' + error.message, 'error');
-        
+
         // Reset button after 3 seconds
         setTimeout(() => {
             resetValidateButton();
@@ -2293,7 +2308,7 @@ async function validateGroqApiKey() {
 function resetValidateButton() {
     const validateBtn = document.getElementById('groq-validate-btn');
     validateBtn.classList.remove('validating', 'valid', 'invalid');
-    
+
     // Reset to original thunder icon
     validateBtn.innerHTML = `
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2311,7 +2326,7 @@ let isDashboardPinned = false;
 function toggleDashboard() {
     const sidebar = document.getElementById('unified-sidebar');
     sidebar.classList.toggle('open');
-    
+
     // Switch to dashboard tab if opening
     if (sidebar.classList.contains('open')) {
         switchMainTab('dashboard');
@@ -2324,9 +2339,9 @@ function toggleDashboardPin() {
     const dashboard = document.getElementById('dashboard-sidebar');
     const pinBtn = document.getElementById('pin-dashboard');
     const container = document.querySelector('.container');
-    
+
     isDashboardPinned = !isDashboardPinned;
-    
+
     if (isDashboardPinned) {
         dashboard.classList.add('pinned');
         pinBtn.classList.add('pinned');
@@ -2344,11 +2359,11 @@ function switchDashboardTab(tabName) {
     // Remove active class from all tabs and contents
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
+
     // Add active class to selected tab and content
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
-    
+
     // Update specific tab data
     updateTabData(tabName);
 }
@@ -2368,13 +2383,13 @@ function stopDashboardUpdates() {
 
 function updateDashboardData() {
     if (!txtOS) return;
-    
+
     // Update Semantic Core KPIs
     updateSemanticKPIs();
-    
+
     // Update Reasoning Protocols
     updateReasoningProtocols();
-    
+
     // Update Operational KPIs
     updateOperationalKPIs();
 }
@@ -2384,13 +2399,13 @@ function updateSemanticKPIs() {
     const deltaS = txtOS.knowledgeBoundary.deltaS || 0;
     const deltaSRing = document.getElementById('delta-s-ring');
     const deltaSValue = document.getElementById('delta-s-value');
-    
+
     if (deltaSRing && deltaSValue) {
         const circumference = 220;
         const offset = circumference - (deltaS * circumference);
         deltaSRing.style.strokeDashoffset = offset;
         deltaSValue.textContent = deltaS.toFixed(3);
-        
+
         // Change color based on uncertainty level
         if (deltaS > 0.7) {
             deltaSRing.style.stroke = '#ef4444'; // Red for high uncertainty
@@ -2400,33 +2415,33 @@ function updateSemanticKPIs() {
             deltaSRing.style.stroke = '#3b82f6'; // Blue for low
         }
     }
-    
+
     // λ_observe (Boundary Threshold)
     const lambda = txtOS.knowledgeBoundary.lambdaObserve || 0.7;
     const lambdaBar = document.getElementById('lambda-bar');
     const lambdaValue = document.getElementById('lambda-value');
-    
+
     if (lambdaBar && lambdaValue) {
         lambdaBar.style.width = `${lambda * 100}%`;
         lambdaValue.textContent = lambda.toFixed(3);
     }
-    
+
     // E_resonance (Logical Resonance)
     const resonance = txtOS.knowledgeBoundary.eResonance || 0;
     const resonanceRing = document.getElementById('resonance-ring');
     const resonanceValue = document.getElementById('resonance-value');
-    
+
     if (resonanceRing && resonanceValue) {
         const circumference = 220;
         const offset = circumference - (resonance * circumference);
         resonanceRing.style.strokeDashoffset = offset;
         resonanceValue.textContent = resonance.toFixed(3);
     }
-    
+
     // Knowledge Boundary Status
     const boundaryStatus = document.getElementById('boundary-status');
     const boundaryMonitors = document.getElementById('boundary-monitors');
-    
+
     if (boundaryStatus && boundaryMonitors) {
         const isActive = txtOS.knowledgeBoundary.boundaryActive;
         boundaryStatus.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
@@ -2439,23 +2454,23 @@ function updateReasoningProtocols() {
     // BBCR Protocol Status
     const bbcrStatus = document.getElementById('bbcr-status');
     const bbcrPivots = document.getElementById('bbcr-pivots');
-    
+
     if (bbcrStatus && bbcrPivots) {
         const isActive = txtOS.knowledgeBoundary.boundaryActive;
         bbcrStatus.className = isActive ? 'protocol-indicator active' : 'protocol-indicator';
         bbcrPivots.textContent = txtOS.reasoningChain ? txtOS.reasoningChain.length : 0;
     }
-    
+
     // Semantic Tree
     const treeCount = document.getElementById('tree-count');
     const treeDepth = document.getElementById('tree-depth');
     const treeNodes = document.getElementById('tree-nodes');
-    
+
     if (treeCount && treeDepth && treeNodes) {
         const nodeCount = txtOS.memoryTree ? txtOS.memoryTree.length : 0;
         treeCount.textContent = nodeCount;
         treeDepth.textContent = Math.ceil(nodeCount / 3);
-        
+
         // Update tree visualization
         const nodes = treeNodes.querySelectorAll('.tree-node');
         nodes.forEach((node, index) => {
@@ -2466,7 +2481,7 @@ function updateReasoningProtocols() {
             }
         });
     }
-    
+
     // Resonance Amplification
     const amplificationLevel = document.getElementById('amplification-level');
     if (amplificationLevel) {
@@ -2480,39 +2495,39 @@ function updateOperationalKPIs() {
     // Temperature
     const tempFill = document.getElementById('temp-fill');
     const tempDisplay = document.getElementById('temp-display');
-    
+
     if (tempFill && tempDisplay) {
         const temperature = txtOS.temperature || 0.2;
         tempFill.style.height = `${temperature * 100}%`;
         tempDisplay.textContent = temperature.toFixed(1);
     }
-    
+
     // Hallucination Detection
     const hallucinationStatus = document.getElementById('hallucination-status');
     const detectionFill = document.getElementById('detection-fill');
-    
+
     if (hallucinationStatus && detectionFill) {
         const isEnabled = txtOS.knowledgeBoundary.boundaryActive;
         hallucinationStatus.textContent = isEnabled ? 'ENABLED' : 'DISABLED';
         hallucinationStatus.className = `status-badge ${isEnabled ? 'available' : ''}`;
         detectionFill.style.width = isEnabled ? '85%' : '0%';
     }
-    
+
     // Memory Export
     const exportStatus = document.getElementById('export-status');
     const memorySize = document.getElementById('memory-size');
     const memoryNodes = document.getElementById('memory-nodes');
-    
+
     if (exportStatus && memorySize && memoryNodes) {
         const nodeCount = txtOS.memoryTree ? txtOS.memoryTree.length : 0;
         const sizeKB = Math.max(1, Math.round(nodeCount * 0.5)); // Estimate size
-        
+
         exportStatus.textContent = nodeCount > 0 ? 'AVAILABLE' : 'EMPTY';
         exportStatus.className = `status-badge ${nodeCount > 0 ? 'available' : ''}`;
         memorySize.textContent = `${sizeKB} KB`;
         memoryNodes.textContent = nodeCount;
     }
-    
+
     // Update activity chart
     updateActivityChart();
 }
@@ -2520,15 +2535,15 @@ function updateOperationalKPIs() {
 function updateActivityChart() {
     const activityBars = document.getElementById('activity-bars');
     if (!activityBars) return;
-    
+
     const bars = activityBars.querySelectorAll('.bar');
     const messageCount = txtOS.messageCount || 0;
     const memoryCount = txtOS.memoryTree ? txtOS.memoryTree.length : 0;
     const reasoningCount = txtOS.reasoningChain ? txtOS.reasoningChain.length : 0;
-    
+
     // Generate some dynamic activity data
     const maxValue = Math.max(10, messageCount, memoryCount, reasoningCount);
-    
+
     bars.forEach((bar, index) => {
         let height;
         switch (index % 3) {
@@ -2570,12 +2585,12 @@ document.addEventListener('DOMContentLoaded', () => {
         isDashboardPinned = false; // Set to false first so toggle works correctly
         toggleDashboardPin();
     }
-    
+
     // Update dashboard periodically if open
     setInterval(() => {
         const sidebar = document.getElementById('unified-sidebar');
         const dashboardTab = document.getElementById('dashboard-tab');
-        if (sidebar && sidebar.classList.contains('open') && 
+        if (sidebar && sidebar.classList.contains('open') &&
             dashboardTab && dashboardTab.classList.contains('active')) {
             updateDashboardData();
         }

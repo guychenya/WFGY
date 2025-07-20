@@ -24,13 +24,13 @@
                 </div>
                 <h1>TXT OS</h1>
             </div>
-            
+
             <!-- Advanced Status Indicator -->
             <div class="connection-status" id="connection-status">
                 <span class="status-dot"></span>
                 <span class="status-text">Connecting...</span>
             </div>
-            
+
             <!-- Modern Controls -->
             <div class="header-controls">
                 <button class="control-btn" id="audio-toggle" title="Toggle audio" aria-label="Toggle sound effects">
@@ -74,7 +74,7 @@
                 <div class="messages-area" id="messages-area">
                     <!-- Messages appear here -->
                 </div>
-                
+
                 <!-- Modern Chat History Sidebar -->
                 <div class="history-sidebar" id="history-sidebar">
                     <div class="history-header">
@@ -100,8 +100,8 @@
                             <polyline points="10,9 9,9 8,9"></polyline>
                         </svg>
                     </button>
-                    <textarea 
-                        class="chat-input" 
+                    <textarea
+                        class="chat-input"
                         id="chat-input"
                         placeholder="Ask me anything... (Shift+Enter for new line)"
                         rows="1"
@@ -131,7 +131,7 @@
                     </svg>
                 </button>
             </div>
-            
+
             <div class="panel-content">
                 <!-- AI Service Selection -->
                 <div class="setting-group">
@@ -162,7 +162,7 @@
                         </select>
                     </label>
                 </div>
-                
+
                 <div class="setting-group" id="openai-settings" style="display: none;">
                     <label class="setting-label">
                         OpenAI API Key
@@ -177,7 +177,7 @@
                         </select>
                     </label>
                 </div>
-                
+
                 <div class="setting-group" id="claude-settings" style="display: none;">
                     <label class="setting-label">
                         Claude API Key
@@ -192,7 +192,7 @@
                         </select>
                     </label>
                 </div>
-                
+
                 <div class="setting-group" id="gemini-settings" style="display: none;">
                     <label class="setting-label">
                         Gemini API Key
@@ -207,7 +207,7 @@
                         </select>
                     </label>
                 </div>
-                
+
                 <div class="setting-group" id="xai-settings" style="display: none;">
                     <label class="setting-label">
                         X.AI API Key
@@ -334,5 +334,14 @@
     </div>
 
     <script src="script-modern-v2.js"></script>
+<script>
+        window.addEventListener('load', function() {
+            if (window.txtOS && typeof window.txtOS.autoConnectService === 'function') {
+                window.txtOS.autoConnectService();
+            } else {
+                console.warn('txtOS not initialized or autoConnectService not found.');
+            }
+        });
+    </script>
 </body>
 </html>
