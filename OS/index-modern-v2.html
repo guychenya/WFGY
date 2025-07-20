@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="audio-system.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -32,6 +33,12 @@
             
             <!-- Modern Controls -->
             <div class="header-controls">
+                <button class="control-btn" id="audio-toggle" title="Toggle audio" aria-label="Toggle sound effects">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                </button>
                 <button class="control-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle dark/light theme">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="5"></circle>
@@ -227,6 +234,27 @@
                     </label>
                 </div>
 
+                <!-- Audio Settings -->
+                <div class="setting-group">
+                    <label class="setting-label">
+                        🔊 Audio Experience
+                    </label>
+                    <div class="audio-controls">
+                        <div class="volume-control">
+                            <label class="setting-label" style="margin-bottom: 0.5rem;">
+                                Volume
+                                <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.1" value="0.6">
+                            </label>
+                        </div>
+                        <div class="audio-test-buttons">
+                            <button class="audio-test-btn" id="test-startup">🎵 Startup</button>
+                            <button class="audio-test-btn" id="test-message">💬 Message</button>
+                            <button class="audio-test-btn" id="test-sparkle">✨ Sparkle</button>
+                            <button class="audio-test-btn" id="test-surprise">🎉 Surprise</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Connection Test -->
                 <div class="setting-actions">
                     <button class="action-btn primary" id="test-connection">Test Connection</button>
@@ -262,6 +290,13 @@
                                 <input type="checkbox" id="streaming-responses">
                                 <span class="toggle-slider"></span>
                                 Streaming Responses
+                            </label>
+                        </div>
+                        <div class="feature-toggle">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="ambient-focus" checked>
+                                <span class="toggle-slider"></span>
+                                Ambient Focus Mode
                             </label>
                         </div>
                     </div>

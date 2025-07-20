@@ -11,7 +11,7 @@ class ModernTxtOS {
         this.isConnected = false;
         this.messageCount = 0;
         this.typingTimeouts = [];
-        
+
         // Groq API configuration
         this.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
         this.groqModels = [
@@ -21,7 +21,7 @@ class ModernTxtOS {
             'llama3-70b-8192',
             'llama3-8b-8192'
         ];
-        
+
         // WFGY Reasoning Engine state
         this.semanticContext = new Map();
         this.knowledgeBoundary = {
@@ -31,12 +31,12 @@ class ModernTxtOS {
             boundaryActive: false
         };
         this.reasoningChain = [];
-        
+
         // Performance optimizations
         this.messagesCache = new Map();
         this.renderQueue = [];
         this.isRendering = false;
-        
+
         this.init();
     }
 
@@ -44,7 +44,7 @@ class ModernTxtOS {
         this.loadSettings();
         this.setupEventListeners();
         this.initializePerformanceOptimizations();
-        
+
         // Delay auto-connect to ensure DOM is fully loaded
         setTimeout(() => {
             this.autoConnectService();
@@ -55,18 +55,18 @@ class ModernTxtOS {
         // Optimized event delegation
         document.addEventListener('click', this.handleClick.bind(this));
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
-        
+
         // Settings changes
         document.getElementById('ollama-url').addEventListener('change', () => {
             this.ollamaUrl = document.getElementById('ollama-url').value;
             this.saveSettings();
         });
-        
+
         document.getElementById('model-select').addEventListener('change', () => {
             this.currentModel = document.getElementById('model-select').value;
             this.saveSettings();
         });
-        
+
         document.getElementById('temperature').addEventListener('input', (e) => {
             this.temperature = parseFloat(e.target.value);
             this.saveSettings();
@@ -121,21 +121,21 @@ class ModernTxtOS {
 
     processRenderQueue() {
         if (this.isRendering || this.renderQueue.length === 0) return;
-        
+
         this.isRendering = true;
-        
+
         // Process up to 5 items from the queue
         const batchSize = Math.min(5, this.renderQueue.length);
         const batch = this.renderQueue.splice(0, batchSize);
-        
+
         batch.forEach(item => {
             if (typeof item === 'function') {
                 item();
             }
         });
-        
+
         this.isRendering = false;
-        
+
         // Continue processing if there are more items
         if (this.renderQueue.length > 0) {
             requestAnimationFrame(() => this.processRenderQueue());
@@ -157,28 +157,30 @@ class ModernTxtOS {
     async autoConnectService() {
         const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
         this.showNotification(`Connecting to ${serviceName}...`, 'info');
-        
+
         // Try to connect automatically with retry logic
         let retryCount = 0;
         const maxRetries = 3;
-        
+
         while (retryCount < maxRetries && !this.isConnected) {
             try {
+                console.log(`Attempting to connect to ${serviceName} (attempt ${retryCount + 1})...`);
                 await this.testConnection(true);
                 if (this.isConnected) {
+                    console.log(`Successfully connected to ${serviceName}!`);
                     this.showNotification(`Connected to ${serviceName} successfully!`, 'success');
                     return;
                 }
             } catch (error) {
-                console.log(`Connection attempt ${retryCount + 1} failed:`, error);
+                console.error(`Connection attempt ${retryCount + 1} failed:`, error);
             }
-            
+
             retryCount++;
             if (retryCount < maxRetries) {
                 await this.delay(2000); // Wait 2 seconds before retry
             }
         }
-        
+
         if (!this.isConnected) {
             this.showNotification(`Failed to connect to ${serviceName}. Please check configuration.`, 'error');
             if (this.currentService === 'ollama') {
@@ -234,21 +236,22 @@ class ModernTxtOS {
         if (this.currentService === 'groq') {
             return await this.testGroqConnection(silent);
         }
-        
+
         const statusElement = document.getElementById('ollama-status');
         const testBtn = document.getElementById('test-btn');
-        
+
         if (!statusElement) {
             console.warn('Status element not found');
             return false;
         }
-        
+
         if (testBtn && !silent) {
             testBtn.disabled = true;
             testBtn.textContent = 'Testing...';
         }
-        
+
         try {
+            console.log(`Testing connection to Ollama at ${this.ollamaUrl}/api/tags...`);
             // Enhanced CORS-aware request for Ollama
             const response = await fetch(`${this.ollamaUrl}/api/tags`, {
                 method: 'GET',
@@ -260,12 +263,13 @@ class ModernTxtOS {
                 credentials: 'omit',
                 signal: AbortSignal.timeout(8000)
             });
-            
+
             if (response.ok) {
+                console.log('Ollama connection successful!');
                 const data = await response.json();
                 this.isConnected = true;
                 statusElement.classList.add('online');
-                
+
                 // Update model list for Ollama
                 const modelSelect = document.getElementById('model-select');
                 if (modelSelect) {
@@ -277,29 +281,30 @@ class ModernTxtOS {
                         modelSelect.appendChild(option);
                     });
                 }
-                
+
                 if (testBtn && !silent) testBtn.textContent = 'Connected';
                 if (!silent) this.showNotification('Connected to Ollama!', 'success');
-                
+
                 return true;
             } else {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
+            console.error('Ollama connection error:', error);
             this.isConnected = false;
             statusElement.classList.remove('online');
-            
+
             if (testBtn && !silent) testBtn.textContent = 'Failed';
-            
+
             if (error.name === 'TypeError' && error.message.includes('CORS')) {
                 if (!silent) this.showCORSError();
             } else if (!silent) {
                 this.showNotification(`Connection failed: ${error.message}`, 'error');
             }
-            
+
             return false;
         }
-        
+
         if (testBtn && !silent) {
             setTimeout(() => {
                 testBtn.disabled = false;
@@ -340,7 +345,7 @@ docker run -d -v ollama:/root/.ollama -p 11434:11434 -e OLLAMA_ORIGINS="*" --nam
 
 This enables cross-origin requests and prevents network blocking.
         `;
-        
+
         this.addMessage('system', instructions);
     }
 
@@ -364,14 +369,14 @@ To use Groq's super-fast inference:
 
 Groq provides extremely fast inference with no local setup required!
         `;
-        
+
         this.addMessage('system', instructions);
     }
 
     async sendMessage() {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
-        
+
         if (!message) return;
         if (!this.isConnected) {
             const serviceName = this.currentService === 'groq' ? 'Groq' : 'Ollama';
@@ -390,19 +395,19 @@ Groq provides extremely fast inference with no local setup required!
         // Clear input immediately for responsiveness
         input.value = '';
         this.autoResize(input);
-        
+
         // Return focus to input for continuous typing
         input.focus();
-        
+
         // Add user message instantly
         this.addMessage('user', message);
-        
+
         // Perform knowledge boundary analysis
         this.analyzeKnowledgeBoundary(message);
-        
+
         // Show typing indicator
         const typingId = this.showTypingIndicator();
-        
+
         try {
             if (this.currentService === 'groq') {
                 await this.streamGroqResponse(message, typingId);
@@ -424,10 +429,10 @@ Groq provides extremely fast inference with no local setup required!
     async streamResponse(message, typingId) {
         const systemPrompt = this.buildSystemPrompt();
         const fullMessage = `${systemPrompt}\n\nUser: ${message}`;
-        
+
         const response = await fetch(`${this.ollamaUrl}/api/generate`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
@@ -442,25 +447,25 @@ Groq provides extremely fast inference with no local setup required!
         });
 
         if (!response.ok) throw new Error('Request failed');
-        
+
         // Remove typing indicator
         this.removeTypingIndicator(typingId);
-        
+
         // Create streaming message
         const messageId = this.addStreamingMessage('assistant');
-        
+
         // Stream response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = '';
-        
+
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            
+
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n');
-            
+
             for (const line of lines) {
                 if (line.trim()) {
                     try {
@@ -475,10 +480,10 @@ Groq provides extremely fast inference with no local setup required!
                 }
             }
         }
-        
+
         // Finalize message
         this.finalizeStreamingMessage(messageId);
-        
+
         // Update memory
         this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
@@ -486,7 +491,7 @@ Groq provides extremely fast inference with no local setup required!
 
     async streamGroqResponse(message, typingId) {
         const systemPrompt = this.buildSystemPrompt();
-        
+
         const response = await fetch(this.groqUrl, {
             method: 'POST',
             headers: {
@@ -514,16 +519,16 @@ Groq provides extremely fast inference with no local setup required!
                 throw new Error(`Groq API error: ${response.status}`);
             }
         }
-        
+
         // Remove typing indicator
         this.removeTypingIndicator(typingId);
-        
+
         const data = await response.json();
         const fullResponse = data.choices[0].message.content;
-        
+
         // Create and show response message
         const messageId = this.addMessage('assistant', fullResponse);
-        
+
         // Update memory
         this.addToMemory(message, fullResponse);
         this.updateMemoryCount();
@@ -532,16 +537,16 @@ Groq provides extremely fast inference with no local setup required!
     addMessage(type, content) {
         const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const messageElement = this.createMessageElement(type, content, messageId);
-        
+
         const container = document.getElementById('chat-messages');
         container.appendChild(messageElement);
-        
+
         // Smooth scroll to bottom
         this.smoothScrollToBottom();
-        
+
         // Add to observer
         this.messageObserver.observe(messageElement);
-        
+
         this.messageCount++;
         return messageId;
     }
@@ -550,13 +555,13 @@ Groq provides extremely fast inference with no local setup required!
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
         messageDiv.id = messageId;
-        
+
         const avatarMap = {
             'user': '👤',
             'assistant': '🏛️',
             'system': '⚙️'
         };
-        
+
         messageDiv.innerHTML = `
             <div class="message-avatar">${avatarMap[type]}</div>
             <div class="message-bubble">
@@ -597,7 +602,7 @@ Groq provides extremely fast inference with no local setup required!
                 </div>
             </div>
         `;
-        
+
         return messageDiv;
     }
 
@@ -608,39 +613,39 @@ Groq provides extremely fast inference with no local setup required!
             div.textContent = text;
             return div.innerHTML;
         };
-        
+
         // Process content safely
         let processedContent = escapeHtml(content);
-        
+
         // Handle code blocks first (multiline)
         processedContent = processedContent.replace(/```([\s\S]*?)```/g, (match, code) => {
             return `<pre class="code-block"><code>${code.trim()}</code></pre>`;
         });
-        
+
         // Handle inline code
         processedContent = processedContent.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-        
+
         // Handle line breaks
         processedContent = processedContent.replace(/\n/g, '<br>');
-        
+
         // Handle markdown-style formatting
         processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         processedContent = processedContent.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        
+
         return processedContent;
     }
 
     addStreamingMessage(type) {
         const messageId = `stream-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const messageElement = this.createMessageElement(type, '', messageId);
-        
+
         // Add streaming indicator
         const content = messageElement.querySelector('.message-content');
         content.innerHTML = '<div class="streaming-cursor">|</div>';
-        
+
         const container = document.getElementById('chat-messages');
         container.appendChild(messageElement);
-        
+
         this.smoothScrollToBottom();
         return messageId;
     }
@@ -648,10 +653,10 @@ Groq provides extremely fast inference with no local setup required!
     updateStreamingMessage(messageId, text) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         content.innerHTML = this.formatContent(text) + '<div class="streaming-cursor">|</div>';
-        
+
         // Auto-scroll if user is at bottom
         this.smoothScrollToBottom();
     }
@@ -659,11 +664,11 @@ Groq provides extremely fast inference with no local setup required!
     finalizeStreamingMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const cursor = content.querySelector('.streaming-cursor');
         if (cursor) cursor.remove();
-        
+
         messageElement.classList.add('finalized');
     }
 
@@ -672,7 +677,7 @@ Groq provides extremely fast inference with no local setup required!
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
         typingDiv.className = 'typing-indicator';
-        
+
         typingDiv.innerHTML = `
             <div class="message-avatar">🏛️</div>
             <div class="typing-bubble">
@@ -684,10 +689,10 @@ Groq provides extremely fast inference with no local setup required!
                 <span>Thinking...</span>
             </div>
         `;
-        
+
         const container = document.getElementById('chat-messages');
         container.appendChild(typingDiv);
-        
+
         this.smoothScrollToBottom();
         return typingId;
     }
@@ -711,14 +716,14 @@ Groq provides extremely fast inference with no local setup required!
     async copyMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const text = content.textContent;
-        
+
         try {
             await navigator.clipboard.writeText(text);
             this.showNotification('Copied to clipboard!', 'success');
-            
+
             // Visual feedback
             const copyBtn = messageElement.querySelector('.copy-btn');
             copyBtn.innerHTML = `
@@ -727,7 +732,7 @@ Groq provides extremely fast inference with no local setup required!
                 </svg>
                 Copied!
             `;
-            
+
             setTimeout(() => {
                 copyBtn.innerHTML = `
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -745,12 +750,12 @@ Groq provides extremely fast inference with no local setup required!
     toggleMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         messageElement.classList.toggle('minimized');
-        
+
         const minimizeBtn = messageElement.querySelector('.minimize-btn');
         const isMinimized = messageElement.classList.contains('minimized');
-        
+
         minimizeBtn.innerHTML = isMinimized ? `
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M6 9L12 15L18 9"></path>
@@ -767,9 +772,9 @@ Groq provides extremely fast inference with no local setup required!
     handleClick(event) {
         const target = event.target.closest('button');
         if (!target) return;
-        
+
         const messageId = target.dataset.messageId;
-        
+
         if (target.classList.contains('copy-btn')) {
             this.copyMessage(messageId);
         } else if (target.classList.contains('minimize-btn')) {
@@ -793,19 +798,19 @@ Groq provides extremely fast inference with no local setup required!
     downloadMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const text = content.textContent;
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        
+
         const blob = new Blob([text], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `message-${timestamp}.txt`;
         a.click();
-        
+
         URL.revokeObjectURL(url);
         this.showNotification('Message downloaded!', 'success');
     }
@@ -813,10 +818,10 @@ Groq provides extremely fast inference with no local setup required!
     shareMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
+
         const content = messageElement.querySelector('.message-content');
         const text = content.textContent;
-        
+
         if (navigator.share) {
             navigator.share({
                 title: 'TXT OS Message',
@@ -838,20 +843,20 @@ Groq provides extremely fast inference with no local setup required!
     navigateToMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (!messageElement) return;
-        
-        messageElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+
+        messageElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
         });
-        
+
         // Highlight the message briefly
         messageElement.style.background = 'rgba(255, 107, 53, 0.1)';
         messageElement.style.transition = 'background 0.3s ease';
-        
+
         setTimeout(() => {
             messageElement.style.background = '';
         }, 1500);
-        
+
         this.showNotification('Navigated to message', 'success');
     }
 
@@ -859,15 +864,15 @@ Groq provides extremely fast inference with no local setup required!
         const notification = document.createElement('div');
         notification.className = 'copy-feedback';
         notification.textContent = message;
-        
+
         if (type === 'error') {
             notification.style.background = '#ef4444';
         } else if (type === 'success') {
             notification.style.background = '#10b981';
         }
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.remove();
         }, 2000);
@@ -877,7 +882,7 @@ Groq provides extremely fast inference with no local setup required!
         const boundaryStatus = this.knowledgeBoundary.boundaryActive ? 'ACTIVE' : 'INACTIVE';
         const deltaS = this.knowledgeBoundary.deltaS.toFixed(3);
         const eResonance = this.knowledgeBoundary.eResonance.toFixed(3);
-        
+
         return `You are TXT OS v2.0, powered by the WFGY Reasoning Engine - an advanced semantic operating system.
 
 WFGY CORE PARAMETERS:
@@ -914,12 +919,12 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             eResonance: this.knowledgeBoundary.eResonance,
             semanticWeight: Math.random() * 0.5 + 0.5 // Simple semantic weighting
         };
-        
+
         this.memoryTree.push(memoryNode);
-        
+
         // Extract semantic keys for context mapping
         this.extractSemanticKeys(input, output);
-        
+
         // Update reasoning chain
         this.reasoningChain.push({
             step: this.reasoningChain.length + 1,
@@ -927,12 +932,12 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             resonance: this.knowledgeBoundary.eResonance,
             timestamp: Date.now()
         });
-        
+
         // Keep memory manageable
         if (this.memoryTree.length > 100) {
             this.memoryTree = this.memoryTree.slice(-50);
         }
-        
+
         if (this.reasoningChain.length > 50) {
             this.reasoningChain = this.reasoningChain.slice(-25);
         }
@@ -942,7 +947,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         // Simple keyword extraction for semantic context
         const text = (input + ' ' + output).toLowerCase();
         const words = text.match(/\b\w{4,}\b/g) || [];
-        
+
         words.forEach(word => {
             if (this.semanticContext.has(word)) {
                 this.semanticContext.set(word, this.semanticContext.get(word) + 1);
@@ -950,7 +955,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
                 this.semanticContext.set(word, 1);
             }
         });
-        
+
         // Keep semantic context manageable
         if (this.semanticContext.size > 200) {
             const sorted = [...this.semanticContext.entries()].sort((a, b) => b[1] - a[1]);
@@ -963,7 +968,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         if (counter) {
             counter.textContent = this.memoryTree.length;
         }
-        
+
         const memoryStatus = document.getElementById('memory-status');
         if (memoryStatus) {
             memoryStatus.classList.toggle('online', this.memoryTree.length > 0);
@@ -974,7 +979,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
         const ollamaSettings = document.getElementById('ollama-settings');
         const groqSettings = document.getElementById('groq-settings');
         const statusElement = document.getElementById('ollama-status');
-        
+
         if (this.currentService === 'groq') {
             ollamaSettings.style.display = 'none';
             groqSettings.style.display = 'block';
@@ -984,11 +989,11 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             groqSettings.style.display = 'none';
             statusElement.textContent = 'Ollama';
         }
-        
+
         // Reset connection status when switching
         this.isConnected = false;
         statusElement.classList.remove('online');
-        
+
         // Auto-connect to new service
         setTimeout(() => {
             this.autoConnectService();
@@ -1016,24 +1021,24 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             this.currentModel = settings.currentModel || this.currentModel;
             this.groqModel = settings.groqModel || this.groqModel;
             this.temperature = settings.temperature || this.temperature;
-            
+
             // Update UI
             document.getElementById('ollama-url').value = this.ollamaUrl;
             document.getElementById('model-select').value = this.currentModel;
             document.getElementById('service-select').value = this.currentService;
             document.getElementById('temperature').value = this.temperature;
             document.getElementById('temp-value').textContent = this.temperature;
-            
+
             const groqApiKeyInput = document.getElementById('groq-api-key');
             if (groqApiKeyInput) {
                 groqApiKeyInput.value = this.groqApiKey;
             }
-            
+
             const groqModelSelect = document.getElementById('groq-model-select');
             if (groqModelSelect) {
                 groqModelSelect.value = this.groqModel;
             }
-            
+
             // Apply service switching UI
             this.switchService();
         }
@@ -1070,15 +1075,15 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
             knowledgeBoundary: this.knowledgeBoundary,
             reasoningChain: this.reasoningChain
         };
-        
+
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `txt-os-memory-${Date.now()}.json`;
         a.click();
-        
+
         URL.revokeObjectURL(url);
         this.showNotification('Memory exported!', 'success');
     }
@@ -1086,37 +1091,37 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
     // WFGY Reasoning Engine Methods
     handleSpecialCommand(message) {
         const command = message.toLowerCase().trim();
-        
+
         if (command === 'hello world') {
             this.initializeWFGYSystem();
             return true;
         }
-        
+
         if (command === 'kbtest' || command.startsWith('kbtest ')) {
             this.performKnowledgeBoundaryTest(command);
             return true;
         }
-        
+
         if (command === 'tree' || command === 'memory tree') {
             this.displaySemanticTree();
             return true;
         }
-        
+
         if (command === 'clear boundary') {
             this.resetKnowledgeBoundary();
             return true;
         }
-        
+
         if (command === 'load helloworld' || command === 'helloworld') {
             this.loadHelloWorldSystem();
             return true;
         }
-        
+
         if (command === 'help' || command === '?') {
             this.showHelp();
             return true;
         }
-        
+
         return false;
     }
 
@@ -1134,7 +1139,7 @@ You are not just an AI assistant - you are a reasoning operating system. Provide
 - \`clear boundary\` - Reset boundary analysis
 
 Ready for advanced semantic reasoning.`);
-        
+
         this.knowledgeBoundary.boundaryActive = true;
         this.showNotification('WFGY System Initialized', 'success');
     }
@@ -1148,16 +1153,16 @@ Ready for advanced semantic reasoning.`);
             "How fast does silence travel through emptiness?",
             "What is the molecular structure of a forgotten dream?"
         ];
-        
+
         const randomQuestion = testQuestions[Math.floor(Math.random() * testQuestions.length)];
-        
+
         // Simulate boundary detection analysis
         const deltaS = Math.random() * 0.8 + 0.2; // Random high uncertainty
         const riskLevel = deltaS > 0.6 ? 'HIGH' : deltaS > 0.3 ? 'MEDIUM' : 'LOW';
-        
+
         this.knowledgeBoundary.deltaS = deltaS;
         this.knowledgeBoundary.eResonance = Math.random() * 0.5;
-        
+
         this.addMessage('system', `🛡️ **Knowledge Boundary Test**
 
 **Test Query:** "${randomQuestion}"
@@ -1170,44 +1175,44 @@ Ready for advanced semantic reasoning.`);
 
 **Boundary Status:** ${deltaS > this.knowledgeBoundary.lambdaObserve ? '🚨 BOUNDARY EXCEEDED' : '✅ WITHIN SAFE LIMITS'}
 
-${deltaS > this.knowledgeBoundary.lambdaObserve ? 
-'**Recommendation:** Semantic pivot required. Question contains undefined conceptual mappings.' : 
+${deltaS > this.knowledgeBoundary.lambdaObserve ?
+'**Recommendation:** Semantic pivot required. Question contains undefined conceptual mappings.' :
 '**Recommendation:** Query is within established knowledge boundaries.'}`);
-        
+
         this.updateBoundaryDisplay();
     }
 
     analyzeKnowledgeBoundary(message) {
         if (!this.knowledgeBoundary.boundaryActive) return;
-        
+
         // Simple heuristic for uncertainty detection
         const uncertaintyMarkers = [
             'exact', 'precisely', 'definitely', 'absolute', 'perfect',
             'infinite', 'impossible', 'never', 'always', 'everything',
             'nothing', 'beyond', 'transcendent', 'mystical'
         ];
-        
+
         const abstractMarkers = [
             'soul', 'consciousness', 'love', 'meaning', 'purpose',
             'existence', 'reality', 'truth', 'beauty', 'justice'
         ];
-        
+
         let uncertaintyScore = 0;
         const words = message.toLowerCase().split(/\s+/);
-        
+
         words.forEach(word => {
             if (uncertaintyMarkers.includes(word)) uncertaintyScore += 0.3;
             if (abstractMarkers.includes(word)) uncertaintyScore += 0.2;
         });
-        
+
         // Question complexity analysis
         const questionWords = ['what', 'how', 'why', 'when', 'where', 'which'];
         const hasQuestion = questionWords.some(q => message.toLowerCase().includes(q));
         if (hasQuestion) uncertaintyScore += 0.1;
-        
+
         this.knowledgeBoundary.deltaS = Math.min(uncertaintyScore, 1.0);
         this.knowledgeBoundary.eResonance = 1 - uncertaintyScore;
-        
+
         this.updateBoundaryDisplay();
     }
 
@@ -1226,21 +1231,21 @@ ${deltaS > this.knowledgeBoundary.lambdaObserve ?
             this.addMessage('system', '🌲 **Semantic Tree Empty**\n\nNo memory nodes have been created yet. Start a conversation to build the semantic tree.');
             return;
         }
-        
+
         let treeDisplay = '🌲 **Semantic Memory Tree**\n\n';
-        
+
         this.memoryTree.forEach((node, index) => {
             const depth = Math.floor(index / 3); // Simple depth calculation
             const indent = '  '.repeat(depth);
             const branch = index % 3 === 0 ? '├─' : index % 3 === 1 ? '│ ├─' : '│ └─';
-            
+
             treeDisplay += `${indent}${branch} Node ${node.id}\n`;
             treeDisplay += `${indent}   Input: "${node.input.substring(0, 40)}${node.input.length > 40 ? '...' : ''}"\n`;
             treeDisplay += `${indent}   Resonance: ${(Math.random() * 0.8 + 0.2).toFixed(3)}\n\n`;
         });
-        
+
         treeDisplay += `\n**Tree Statistics:**\n- Total Nodes: ${this.memoryTree.length}\n- Depth Levels: ${Math.ceil(this.memoryTree.length / 3)}\n- Semantic Coherence: ${(0.8 + Math.random() * 0.2).toFixed(3)}`;
-        
+
         this.addMessage('system', treeDisplay);
     }
 
@@ -1272,7 +1277,7 @@ Establishing resonance pathways...
 **Note:** This simulates the HelloWorld.txt integration. In a full implementation, this would load the actual TXT file contents and parse the WFGY reasoning structures.
 
 Ready for enhanced semantic reasoning with HelloWorld protocols.`);
-        
+
         // Enhance system parameters
         this.knowledgeBoundary.lambdaObserve = 0.8; // Higher threshold for HelloWorld mode
         this.knowledgeBoundary.boundaryActive = true;
@@ -1357,7 +1362,7 @@ function switchService() {
 function newChat() {
     txtOS.clearChat();
     txtOS.showNotification('New chat started', 'info');
-    
+
     // Focus the input for immediate typing
     setTimeout(() => {
         const input = document.getElementById('chat-input');
@@ -1377,7 +1382,7 @@ function saveChat() {
         service: txtOS.currentService,
         model: txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel
     };
-    
+
     const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1385,7 +1390,7 @@ function saveChat() {
     a.download = `chat-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    
+
     txtOS.showNotification('Chat saved successfully!', 'success');
 }
 
@@ -1397,14 +1402,14 @@ function exportChat() {
             return `${type}: ${content}`;
         })
         .join('\n\n');
-    
+
     const exportData = `TXT OS Chat Export
 Generated: ${new Date().toLocaleString()}
 Service: ${txtOS.currentService === 'groq' ? 'Groq' : 'Ollama'}
 Model: ${txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel}
 
 ${messages}`;
-    
+
     const blob = new Blob([exportData], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1412,7 +1417,7 @@ ${messages}`;
     a.download = `chat-export-${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    
+
     txtOS.showNotification('Chat exported successfully!', 'success');
 }
 
@@ -1423,7 +1428,7 @@ function openFile() {
     input.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -1452,10 +1457,10 @@ function openFile() {
 function toggleSearch() {
     const searchQuery = prompt('Search in chat history:');
     if (!searchQuery) return;
-    
+
     const messages = document.querySelectorAll('.message-content');
     let found = false;
-    
+
     messages.forEach(msg => {
         const parent = msg.closest('.message');
         if (msg.textContent.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -1467,7 +1472,7 @@ function toggleSearch() {
             }, 3000);
         }
     });
-    
+
     if (found) {
         txtOS.showNotification(`Found "${searchQuery}" in chat`, 'success');
     } else {
@@ -1488,7 +1493,7 @@ function showHelp() {
 **Toolbar Icons:**
 - ➕ **New Chat** - Start a fresh conversation
 - 💾 **Save Chat** - Export chat as JSON file
-- 📥 **Export** - Export chat as text file  
+- 📥 **Export** - Export chat as text file
 - 📁 **Open File** - Load chat or text files
 - 🔍 **Search** - Find text in current chat
 - 🌙 **Dark Mode** - Toggle dark/light theme
@@ -1506,7 +1511,7 @@ function showHelp() {
 
 **Special Commands:**
 - \`hello world\` - Initialize WFGY system
-- \`kbtest\` - Test knowledge boundaries  
+- \`kbtest\` - Test knowledge boundaries
 - \`tree\` - View semantic memory tree
 - \`help\` - Show command help
 
@@ -1517,7 +1522,7 @@ Type any question to start reasoning with TXT OS!`);
 function handleDragOver(event) {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-    
+
     // Add visual feedback
     event.target.style.borderColor = 'var(--primary-color)';
     event.target.style.backgroundColor = 'rgba(255, 107, 53, 0.1)';
@@ -1525,14 +1530,14 @@ function handleDragOver(event) {
 
 function handleDrop(event) {
     event.preventDefault();
-    
+
     // Remove visual feedback
     event.target.style.borderColor = 'var(--border-color)';
     event.target.style.backgroundColor = 'var(--background)';
-    
+
     const files = event.dataTransfer.files;
     const text = event.dataTransfer.getData('text/plain');
-    
+
     if (files.length > 0) {
         // Handle file drops
         for (let file of files) {
@@ -1560,13 +1565,13 @@ function handleDrop(event) {
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     window.txtOS = new ModernTxtOS();
-    
+
     // Initialize dark mode
     const savedDarkMode = localStorage.getItem('dark-mode');
     if (savedDarkMode === 'true') {
         document.body.classList.add('dark-mode');
     }
-    
+
     // Add streaming cursor animation
     const style = document.createElement('style');
     style.textContent = `
@@ -1576,7 +1581,7 @@ document.addEventListener('DOMContentLoaded', () => {
             color: var(--primary-color);
             font-weight: bold;
         }
-        
+
         @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0; }
@@ -1589,15 +1594,15 @@ document.addEventListener('DOMContentLoaded', () => {
 function toggleDashboard() {
     const dashboard = document.getElementById('dashboard-sidebar');
     const settings = document.getElementById('settings-sidebar');
-    
+
     // Close settings if open
     if (settings.classList.contains('open')) {
         settings.classList.remove('open');
     }
-    
+
     // Toggle dashboard
     dashboard.classList.toggle('open');
-    
+
     // Update dashboard data
     updateDashboardData();
 }
@@ -1608,7 +1613,7 @@ function updateDashboardData() {
     const currentModel = document.getElementById('current-model');
     const memoryNodes = document.getElementById('memory-nodes');
     const messageCount = document.getElementById('message-count');
-    
+
     // Update service status
     if (txtOS.isConnected) {
         serviceStatus.classList.add('online');
@@ -1617,11 +1622,11 @@ function updateDashboardData() {
         serviceStatus.classList.remove('online');
         serviceStatus.textContent = '●';
     }
-    
+
     // Update current service and model
     currentService.textContent = txtOS.currentService === 'groq' ? 'Groq' : 'Ollama';
     currentModel.textContent = txtOS.currentService === 'groq' ? txtOS.groqModel : txtOS.currentModel;
-    
+
     // Update memory and message counts
     memoryNodes.textContent = txtOS.memoryTree.length;
     messageCount.textContent = txtOS.messageCount;
@@ -1631,50 +1636,50 @@ function updateDashboardData() {
 async function testGroqConnection() {
     const testBtn = document.getElementById('test-groq-btn');
     const serviceStatus = document.getElementById('service-status');
-    
+
     if (!txtOS.groqApiKey) {
         txtOS.showNotification('Please enter your Groq API key first', 'error');
         return;
     }
-    
+
     testBtn.disabled = true;
     testBtn.textContent = 'Testing...';
-    
+
     try {
         const success = await txtOS.testGroqConnection();
-        
+
         if (success) {
             testBtn.textContent = 'Connected';
             testBtn.style.background = '#10b981';
             testBtn.style.color = 'white';
-            
+
             // Update service status indicator
             if (serviceStatus) {
                 serviceStatus.classList.add('online');
             }
-            
+
             // Update main status dot
             const ollamaStatus = document.getElementById('ollama-status');
             if (ollamaStatus) {
                 ollamaStatus.classList.add('online');
             }
-            
+
             txtOS.showNotification('Groq connection successful!', 'success');
         } else {
             testBtn.textContent = 'Failed';
             testBtn.style.background = '#ef4444';
             testBtn.style.color = 'white';
-            
+
             txtOS.showNotification('Groq connection failed. Check your API key.', 'error');
         }
     } catch (error) {
         testBtn.textContent = 'Failed';
         testBtn.style.background = '#ef4444';
         testBtn.style.color = 'white';
-        
+
         txtOS.showNotification('Groq connection error: ' + error.message, 'error');
     }
-    
+
     // Reset button after 3 seconds
     setTimeout(() => {
         testBtn.disabled = false;
@@ -1710,12 +1715,12 @@ function handleDragOver(e) {
 function handleDrop(e) {
     e.preventDefault();
     e.stopPropagation();
-    
+
     document.querySelector('.input-container').classList.remove('drag-over');
-    
+
     const files = Array.from(e.dataTransfer.files);
     const allowedTypes = ['.txt', '.json', '.md', '.html', '.js', '.css', '.py', '.java', '.cpp', '.c', '.xml', '.yaml', '.yml', '.sql', '.sh', '.bat', '.csv', '.log'];
-    
+
     files.forEach(file => {
         const fileExt = '.' + file.name.split('.').pop().toLowerCase();
         if (allowedTypes.includes(fileExt)) {
@@ -1734,10 +1739,10 @@ function attachFile(file) {
         type: file.type,
         file: file
     };
-    
+
     attachedFiles.push(fileData);
     displayAttachedFiles();
-    
+
     // Read file content for text files
     if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.json')) {
         const reader = new FileReader();
@@ -1750,12 +1755,12 @@ function attachFile(file) {
 
 function displayAttachedFiles() {
     const container = document.getElementById('attached-files');
-    
+
     if (attachedFiles.length === 0) {
         container.innerHTML = '';
         return;
     }
-    
+
     container.innerHTML = attachedFiles.map(file => `
         <div class="file-card">
             <span class="file-name">${file.name}</span>
@@ -1778,11 +1783,11 @@ const originalSendMessage = window.sendMessage;
 window.sendMessage = function() {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
-    
+
     if (!message && attachedFiles.length === 0) return;
-    
+
     let fullMessage = message;
-    
+
     // Add file contents to message
     if (attachedFiles.length > 0) {
         fullMessage += '\n\n📎 Attached Files:\n';
@@ -1795,11 +1800,11 @@ window.sendMessage = function() {
             }
         });
     }
-    
+
     // Clear attachments
     attachedFiles = [];
     displayAttachedFiles();
-    
+
     // Call original sendMessage with enhanced message
     input.value = fullMessage;
     originalSendMessage();

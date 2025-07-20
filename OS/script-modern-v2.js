@@ -14,6 +14,7 @@ class ModernTxtOS {
         this.streamingResponses = false;
         this.messageCount = 0;
         this.theme = 'light';
+        this.ambientFocus = false;
         
         // API Keys and Models
         this.apiKeys = {
@@ -35,13 +36,31 @@ class ModernTxtOS {
         this.init();
     }
 
-    init() {
+    async init() {
         this.loadSettings();
         this.setupEventListeners();
         this.loadChatHistory();
         this.initializeTheme();
+        this.setupAudioSystem();
         this.autoConnect();
         this.setupKeyboardShortcuts();
+        
+        // Play startup sound after a short delay
+        setTimeout(() => {
+            if (window.audioSystem) {
+                window.audioSystem.playStartupSound();
+            }
+        }, 500);
+    }
+
+    setupAudioSystem() {
+        // Wait for audio system to be ready
+        if (window.audioSystem) {
+            this.updateAudioUI();
+        } else {
+            // Retry after a short delay
+            setTimeout(() => this.setupAudioSystem(), 100);
+        }
     }
 
     // MODERN EVENT HANDLING WITH ENHANCED INTERACTIONS
@@ -59,6 +78,14 @@ class ModernTxtOS {
                     chatInput.blur();
                 }
             });
+
+            // Resume audio context on first interaction
+            chatInput.addEventListener('focus', () => {
+                if (window.audioSystem) {
+                    window.audioSystem.resumeContext();
+                    this.playAudioFeedback('click', 'soft');
+                }
+            }, { once: true });
             
             chatInput.addEventListener('input', () => {
                 this.autoResize(chatInput);
@@ -110,6 +137,12 @@ class ModernTxtOS {
             });
         }
 
+        // Audio toggle
+        const audioToggle = document.getElementById('audio-toggle');
+        if (audioToggle) {
+            audioToggle.addEventListener('click', () => this.toggleAudio());
+        }
+
         // Theme toggle
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
@@ -124,6 +157,8 @@ class ModernTxtOS {
         if (settingsToggle) {
             settingsToggle.addEventListener('click', () => {
                 settingsPanel.classList.add('open');
+                this.playAudioFeedback('click', 'soft');
+                this.addVisualPulse(settingsToggle);
             });
         }
         
@@ -151,6 +186,11 @@ class ModernTxtOS {
                 this.toggleServiceSettings();
                 this.updateDashboard();
                 this.saveSettings();
+                
+                // Play provider switch sound
+                if (window.audioSystem) {
+                    window.audioSystem.playProviderSwitch(this.currentService);
+                }
             });
         }
         
@@ -206,6 +246,43 @@ class ModernTxtOS {
 
         this.setupToggle('streaming-responses', (enabled) => {
             this.streamingResponses = enabled;
+        });
+
+        this.setupToggle('ambient-focus', (enabled) => {
+            this.ambientFocus = enabled;
+            if (enabled) {
+                this.startAmbientFocus();
+            } else {
+                this.stopAmbientFocus();
+            }
+        });
+
+        // Audio controls
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                if (window.audioSystem) {
+                    window.audioSystem.setVolume(parseFloat(e.target.value));
+                }
+            });
+        }
+
+        // Audio test buttons
+        const testButtons = {
+            'test-startup': () => window.audioSystem?.playStartupSound(),
+            'test-message': () => window.audioSystem?.playMessageReceive(),
+            'test-sparkle': () => window.audioSystem?.playSparkle(),
+            'test-surprise': () => window.audioSystem?.playSuprise()
+        };
+
+        Object.entries(testButtons).forEach(([id, action]) => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    action();
+                    this.addVisualPulse(btn);
+                });
+            }
         });
 
         // Dashboard controls
@@ -273,7 +350,66 @@ class ModernTxtOS {
                 e.preventDefault();
                 this.toggleTheme();
             }
+            
+            // Easter egg: Konami code detection
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'b' || e.key === 'a') {
+                this.handleKonamiCode(e.key);
+            }
         });
+    }
+
+    // Easter egg: Konami code implementation
+    handleKonamiCode(key) {
+        this.konamiSequence = this.konamiSequence || [];
+        const expectedSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        
+        this.konamiSequence.push(key);
+        
+        if (this.konamiSequence.length > expectedSequence.length) {
+            this.konamiSequence.shift();
+        }
+        
+        if (this.konamiSequence.length === expectedSequence.length) {
+            const match = this.konamiSequence.every((k, i) => k === expectedSequence[i]);
+            if (match) {
+                this.triggerEasterEgg();
+                this.konamiSequence = [];
+            }
+        }
+    }
+
+    triggerEasterEgg() {
+        // Play special Easter egg sound
+        if (window.audioSystem) {
+            window.audioSystem.playEasterEgg();
+        }
+        
+        // Add visual effects
+        document.body.style.animation = 'rainbow 3s ease-in-out';
+        
+        // Show special message
+        this.showNotification('🎉 You found the Easter egg! Welcome to TXT OS Pro Mode! 🚀', 'success');
+        
+        // Add rainbow animation styles if not exist
+        if (!document.querySelector('#easter-egg-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'easter-egg-styles';
+            styles.textContent = `
+                @keyframes rainbow {
+                    0% { filter: hue-rotate(0deg); }
+                    25% { filter: hue-rotate(90deg); }
+                    50% { filter: hue-rotate(180deg); }
+                    75% { filter: hue-rotate(270deg); }
+                    100% { filter: hue-rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+        
+        // Reset animation after completion
+        setTimeout(() => {
+            document.body.style.animation = '';
+        }, 3000);
     }
 
     // THEME MANAGEMENT
@@ -300,6 +436,11 @@ class ModernTxtOS {
         this.theme = this.theme === 'light' ? 'dark' : 'light';
         this.applyTheme();
         localStorage.setItem('txtos-theme', this.theme);
+        
+        // Play theme toggle sound
+        if (window.audioSystem) {
+            window.audioSystem.playThemeToggle(this.theme === 'dark');
+        }
     }
 
     applyTheme() {
@@ -321,6 +462,66 @@ class ModernTxtOS {
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
                 `;
             }
+        }
+    }
+
+    // AUDIO INTEGRATION METHODS
+    toggleAudio() {
+        if (window.audioSystem) {
+            const enabled = window.audioSystem.toggleAudio();
+            this.updateAudioUI();
+            if (enabled) {
+                window.audioSystem.playClick('success');
+                this.showNotification('Audio enabled 🔊', 'success');
+            } else {
+                this.showNotification('Audio disabled 🔇', 'info');
+            }
+        }
+    }
+
+    updateAudioUI() {
+        const audioToggle = document.getElementById('audio-toggle');
+        if (audioToggle && window.audioSystem) {
+            if (window.audioSystem.enabled) {
+                audioToggle.classList.add('audio-enabled');
+                audioToggle.classList.remove('audio-disabled');
+            } else {
+                audioToggle.classList.add('audio-disabled');
+                audioToggle.classList.remove('audio-enabled');
+            }
+        }
+
+        // Update volume slider
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider && window.audioSystem) {
+            volumeSlider.value = window.audioSystem.volume;
+        }
+    }
+
+    playAudioFeedback(type, variant = 'default') {
+        if (window.audioSystem) {
+            window.audioSystem.playClick(variant);
+        }
+    }
+
+    addVisualPulse(element) {
+        if (element) {
+            element.classList.add('audio-pulse');
+            setTimeout(() => {
+                element.classList.remove('audio-pulse');
+            }, 600);
+        }
+    }
+
+    startAmbientFocus() {
+        if (window.audioSystem) {
+            window.audioSystem.startAmbientFocus();
+        }
+    }
+
+    stopAmbientFocus() {
+        if (window.audioSystem) {
+            window.audioSystem.stopAmbient();
         }
     }
 
@@ -349,6 +550,11 @@ class ModernTxtOS {
                 
                 if (uploadedFilesDiv) {
                     uploadedFilesDiv.style.display = 'block';
+                }
+                
+                // Play file upload sound
+                if (window.audioSystem) {
+                    window.audioSystem.playFileUpload();
                 }
                 
                 this.showNotification(`File ${file.name} uploaded successfully`, 'success');
@@ -504,6 +710,11 @@ class ModernTxtOS {
         this.messageCount++;
         this.updateDashboard();
         
+        // Play message send sound
+        if (window.audioSystem) {
+            window.audioSystem.playMessageSend();
+        }
+        
         input.value = '';
         this.autoResize(input);
         this.updateSendButtonState();
@@ -541,11 +752,21 @@ class ModernTxtOS {
             this.messageCount++;
             this.updateDashboard();
             
+            // Play message receive sound
+            if (window.audioSystem) {
+                window.audioSystem.playMessageReceive();
+            }
+            
         } catch (error) {
             this.hideTyping();
             this.addMessage('Sorry, I encountered an error. Please check your connection and try again.', 'assistant');
             console.error('Send message error:', error);
             this.showNotification('Failed to send message. Please try again.', 'error');
+            
+            // Play error sound
+            if (window.audioSystem) {
+                window.audioSystem.playError();
+            }
         }
     }
 
@@ -1005,6 +1226,11 @@ class ModernTxtOS {
 
         const systemStatus = document.getElementById('system-status');
         if (systemStatus) systemStatus.textContent = connected ? 'Active' : 'Offline';
+        
+        // Play connection status sound
+        if (window.audioSystem) {
+            window.audioSystem.playConnectionChange(connected);
+        }
     }
 
     updateResponseMode() {
@@ -1053,7 +1279,8 @@ class ModernTxtOS {
                     showDashboard: settings.showDashboard || false,
                     showHistory: settings.showHistory || false,
                     autoSave: settings.autoSave !== false,
-                    streamingResponses: settings.streamingResponses || false
+                    streamingResponses: settings.streamingResponses || false,
+                    ambientFocus: settings.ambientFocus || false
                 });
                 
                 setTimeout(() => this.updateUI(), 100);
@@ -1070,7 +1297,8 @@ class ModernTxtOS {
             'show-dashboard': this.showDashboard,
             'show-history': this.showHistory,
             'auto-save': this.autoSave,
-            'streaming-responses': this.streamingResponses
+            'streaming-responses': this.streamingResponses,
+            'ambient-focus': this.ambientFocus
         };
 
         Object.entries(elements).forEach(([id, value]) => {
@@ -1109,7 +1337,8 @@ class ModernTxtOS {
             showDashboard: this.showDashboard,
             showHistory: this.showHistory,
             autoSave: this.autoSave,
-            streamingResponses: this.streamingResponses
+            streamingResponses: this.streamingResponses,
+            ambientFocus: this.ambientFocus
         };
         
         localStorage.setItem('txtos-modern-settings', JSON.stringify(settings));
